@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "139054120092",
+    "firebase_url": "https://corex-a1c1e-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "corex-a1c1e",
+    "storage_bucket": "corex-a1c1e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:139054120092:android:e0ad99bc35765793514159",
+        "android_client_info": {
+          "package_name": "com.example.corex_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAduths1dalv3IcdZuix7c4uV8Yjs-9t74"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,47 @@
+name: corex_mobile
+description: "COREX Mobile - Application Android pour le PDG"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Package partagé
+  corex_shared:
+    path: ../corex_shared
+  
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  
+  # State Management
+  get: ^4.6.6
+  
+  # UI
+  cupertino_icons: ^1.0.8
+  
+  # PDF & Printing
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  
+  # Utilities
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  shared_preferences: ^2.3.2
+  
+  # Mobile
+  connectivity_plus: ^6.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

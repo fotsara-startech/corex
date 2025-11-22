@@ -1,0 +1,29 @@
+name: corex_shared
+description: "Package partagé COREX - Modèles, Services et Controllers"
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.5.0
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  
+  # State Management
+  get: ^4.6.6
+  
+  # Utilities
+  uuid: ^4.5.1
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
