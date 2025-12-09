@@ -5,7 +5,19 @@ import 'firebase_service.dart';
 
 class TransactionService extends GetxService {
   Future<void> createTransaction(TransactionModel transaction) async {
-    await FirebaseService.transactions.doc(transaction.id).set(transaction.toFirestore());
+    try {
+      await FirebaseService.transactions.doc(transaction.id).set(transaction.toFirestore()).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw Exception('Timeout: Pas de connexion réseau');
+        },
+      );
+      print('✅ [TRANSACTION_SERVICE] Transaction créée dans Firestore');
+    } catch (e) {
+      print('⚠️ [TRANSACTION_SERVICE] Échec Firestore (mode offline): $e');
+      // TODO: Implémenter la sauvegarde locale des transactions si nécessaire
+      // Ne pas rethrow pour ne pas bloquer la collecte de colis
+    }
   }
 
   Future<void> updateTransaction(String transactionId, Map<String, dynamic> data) async {
@@ -61,5 +73,15 @@ class TransactionService extends GetxService {
         .orderBy('date', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => TransactionModel.fromFirestore(doc)).toList());
+  }
+
+  // Méthode pour récupérer toutes les transactions (toutes agences) pour le PDG
+  Future<List<TransactionModel>> getAllTransactions(DateTime debut, DateTime fin) async {
+    final snapshot = await FirebaseService.transactions
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(debut))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(fin))
+        .orderBy('date', descending: true)
+        .get();
+    return snapshot.docs.map((doc) => TransactionModel.fromFirestore(doc)).toList();
   }
 }

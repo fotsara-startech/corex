@@ -12,6 +12,12 @@ class LivraisonModel {
   final String statut; // enAttente, enCours, livree, echec
   final String? motifEchec;
   final String? commentaire;
+  final String? preuveUrl; // URL de la signature ou photo de preuve
+  final String? photoUrl; // URL de la photo justificative en cas d'échec
+  final bool paiementALaLivraison; // Si le paiement doit être collecté à la livraison
+  final double? montantACollecte; // Montant à collecter à la livraison
+  final bool paiementCollecte; // Si le paiement a été collecté
+  final DateTime? datePaiementCollecte; // Date de collecte du paiement
 
   LivraisonModel({
     required this.id,
@@ -25,6 +31,12 @@ class LivraisonModel {
     required this.statut,
     this.motifEchec,
     this.commentaire,
+    this.preuveUrl,
+    this.photoUrl,
+    this.paiementALaLivraison = false,
+    this.montantACollecte,
+    this.paiementCollecte = false,
+    this.datePaiementCollecte,
   });
 
   factory LivraisonModel.fromFirestore(DocumentSnapshot doc) {
@@ -41,6 +53,12 @@ class LivraisonModel {
       statut: data['statut'] ?? 'enAttente',
       motifEchec: data['motifEchec'],
       commentaire: data['commentaire'],
+      preuveUrl: data['preuveUrl'],
+      photoUrl: data['photoUrl'],
+      paiementALaLivraison: data['paiementALaLivraison'] ?? false,
+      montantACollecte: data['montantACollecte'] != null ? (data['montantACollecte'] as num).toDouble() : null,
+      paiementCollecte: data['paiementCollecte'] ?? false,
+      datePaiementCollecte: data['datePaiementCollecte'] != null ? (data['datePaiementCollecte'] as Timestamp).toDate() : null,
     );
   }
 
@@ -56,6 +74,12 @@ class LivraisonModel {
       'statut': statut,
       'motifEchec': motifEchec,
       'commentaire': commentaire,
+      'preuveUrl': preuveUrl,
+      'photoUrl': photoUrl,
+      'paiementALaLivraison': paiementALaLivraison,
+      'montantACollecte': montantACollecte,
+      'paiementCollecte': paiementCollecte,
+      'datePaiementCollecte': datePaiementCollecte != null ? Timestamp.fromDate(datePaiementCollecte!) : null,
     };
   }
 }

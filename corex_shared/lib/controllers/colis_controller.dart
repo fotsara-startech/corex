@@ -76,11 +76,15 @@ class ColisController extends GetxController {
 
   Future<void> createColis(ColisModel colis) async {
     try {
+      print('📦 [COLIS_CONTROLLER] Création du colis: ${colis.numeroSuivi}');
       await _colisService.createColis(colis);
+      print('✅ [COLIS_CONTROLLER] Colis créé avec succès');
       Get.snackbar('Succès', 'Colis créé avec succès');
       await loadColis();
     } catch (e) {
-      Get.snackbar('Erreur', 'Impossible de créer le colis');
+      print('❌ [COLIS_CONTROLLER] Erreur création: $e');
+      Get.snackbar('Erreur', 'Impossible de créer le colis: $e');
+      rethrow;
     }
   }
 
@@ -102,5 +106,14 @@ class ColisController extends GetxController {
 
   void selectColis(ColisModel colis) {
     selectedColis.value = colis;
+  }
+
+  Future<ColisModel?> getColisById(String colisId) async {
+    try {
+      return await _colisService.getColisById(colisId);
+    } catch (e) {
+      print('❌ [COLIS_CONTROLLER] Erreur récupération colis: $e');
+      return null;
+    }
   }
 }

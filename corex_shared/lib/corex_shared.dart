@@ -4,10 +4,19 @@ library corex_shared;
 export 'models/user_model.dart';
 export 'models/agence_model.dart';
 export 'models/colis_model.dart';
+export 'models/colis_hive_adapter.dart';
 export 'models/livraison_model.dart';
 export 'models/transaction_model.dart';
 export 'models/zone_model.dart';
 export 'models/agence_transport_model.dart';
+export 'models/client_model.dart';
+export 'models/depot_model.dart';
+export 'models/mouvement_stock_model.dart';
+export 'models/facture_stockage_model.dart';
+export 'models/course_model.dart';
+
+// Repositories
+export 'repositories/local_colis_repository.dart';
 
 // Services
 export 'services/firebase_service.dart';
@@ -19,6 +28,12 @@ export 'services/agence_transport_service.dart';
 export 'services/colis_service.dart';
 export 'services/livraison_service.dart';
 export 'services/transaction_service.dart';
+export 'services/client_service.dart';
+export 'services/stockage_service.dart';
+export 'services/connectivity_service.dart';
+export 'services/sync_service.dart';
+export 'services/export_service.dart';
+export 'services/course_service.dart';
 
 // Controllers
 export 'controllers/auth_controller.dart';
@@ -29,6 +44,12 @@ export 'controllers/agence_transport_controller.dart';
 export 'controllers/colis_controller.dart';
 export 'controllers/livraison_controller.dart';
 export 'controllers/transaction_controller.dart';
+export 'controllers/client_controller.dart';
+export 'controllers/stockage_controller.dart';
+export 'controllers/suivi_controller.dart';
+export 'controllers/dashboard_controller.dart';
+export 'controllers/course_controller.dart';
+export 'controllers/retour_controller.dart';
 
 // Constants
 export 'constants/app_constants.dart';

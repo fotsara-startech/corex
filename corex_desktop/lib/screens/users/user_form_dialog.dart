@@ -20,6 +20,8 @@ class _UserFormDialogState extends State<UserFormDialog> {
   final _telephoneController = TextEditingController();
 
   String _selectedRole = 'agent';
+  String? _selectedAgenceId;
+  final RxList<AgenceModel> _agencesList = <AgenceModel>[].obs;
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -28,12 +30,24 @@ class _UserFormDialogState extends State<UserFormDialog> {
   @override
   void initState() {
     super.initState();
+    _loadAgences();
     if (isEditMode) {
       _emailController.text = widget.user!.email;
       _nomController.text = widget.user!.nom;
       _prenomController.text = widget.user!.prenom;
       _telephoneController.text = widget.user!.telephone;
       _selectedRole = widget.user!.role;
+      _selectedAgenceId = widget.user!.agenceId;
+    }
+  }
+
+  Future<void> _loadAgences() async {
+    try {
+      final agenceService = Get.find<AgenceService>();
+      final agences = await agenceService.getAllAgences();
+      _agencesList.value = agences.where((a) => a.isActive).toList();
+    } catch (e) {
+      print('❌ [USER_FORM] Erreur chargement agences: $e');
     }
   }
 
@@ -70,6 +84,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
             'prenom': _prenomController.text.trim(),
             'telephone': _telephoneController.text.trim(),
             'role': _selectedRole,
+            'agenceId': _selectedAgenceId,
           },
         );
       } else {
@@ -82,6 +97,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
           prenom: _prenomController.text.trim(),
           telephone: _telephoneController.text.trim(),
           role: _selectedRole,
+          agenceId: _selectedAgenceId,
         );
       }
 
@@ -221,6 +237,31 @@ class _UserFormDialogState extends State<UserFormDialog> {
                     }
                   },
                 ),
+                const SizedBox(height: 16),
+
+                // Agence
+                Obx(() {
+                  // Vérifier si la valeur sélectionnée existe dans la liste
+                  final agenceExists = _selectedAgenceId == null || _agencesList.any((a) => a.id == _selectedAgenceId);
+
+                  return DropdownButtonFormField<String>(
+                    value: agenceExists ? _selectedAgenceId : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Agence',
+                      prefixIcon: Icon(Icons.business),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('Aucune agence')),
+                      ..._agencesList.map((agence) => DropdownMenuItem(
+                            value: agence.id,
+                            child: Text(agence.nom),
+                          )),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _selectedAgenceId = value);
+                    },
+                  );
+                }),
                 const SizedBox(height: 24),
 
                 // Boutons

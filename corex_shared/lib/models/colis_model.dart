@@ -50,6 +50,7 @@ class ColisModel {
   final bool isPaye;
   final DateTime? datePaiement;
   final String modeLivraison;
+  final String? zoneId;
   final String? agenceTransportId;
   final String? agenceTransportNom;
   final double? tarifAgenceTransport;
@@ -62,6 +63,9 @@ class ColisModel {
   final DateTime? dateLivraison;
   final List<HistoriqueStatut> historique;
   final String? commentaire;
+  final bool isRetour;
+  final String? colisInitialId;
+  final String? retourId;
 
   ColisModel({
     required this.id,
@@ -81,6 +85,7 @@ class ColisModel {
     required this.isPaye,
     this.datePaiement,
     required this.modeLivraison,
+    this.zoneId,
     this.agenceTransportId,
     this.agenceTransportNom,
     this.tarifAgenceTransport,
@@ -93,6 +98,9 @@ class ColisModel {
     this.dateLivraison,
     required this.historique,
     this.commentaire,
+    this.isRetour = false,
+    this.colisInitialId,
+    this.retourId,
   });
 
   factory ColisModel.fromFirestore(DocumentSnapshot doc) {
@@ -115,6 +123,7 @@ class ColisModel {
       isPaye: data['isPaye'] ?? false,
       datePaiement: data['datePaiement'] != null ? (data['datePaiement'] as Timestamp).toDate() : null,
       modeLivraison: data['modeLivraison'] ?? '',
+      zoneId: data['zoneId'],
       agenceTransportId: data['agenceTransportId'],
       agenceTransportNom: data['agenceTransportNom'],
       tarifAgenceTransport: data['tarifAgenceTransport']?.toDouble(),
@@ -127,6 +136,9 @@ class ColisModel {
       dateLivraison: data['dateLivraison'] != null ? (data['dateLivraison'] as Timestamp).toDate() : null,
       historique: (data['historique'] as List<dynamic>?)?.map((h) => HistoriqueStatut.fromMap(h as Map<String, dynamic>)).toList() ?? [],
       commentaire: data['commentaire'],
+      isRetour: data['isRetour'] ?? false,
+      colisInitialId: data['colisInitialId'],
+      retourId: data['retourId'],
     );
   }
 
@@ -148,6 +160,7 @@ class ColisModel {
       'isPaye': isPaye,
       'datePaiement': datePaiement != null ? Timestamp.fromDate(datePaiement!) : null,
       'modeLivraison': modeLivraison,
+      'zoneId': zoneId,
       'agenceTransportId': agenceTransportId,
       'agenceTransportNom': agenceTransportNom,
       'tarifAgenceTransport': tarifAgenceTransport,
@@ -160,6 +173,9 @@ class ColisModel {
       'dateLivraison': dateLivraison != null ? Timestamp.fromDate(dateLivraison!) : null,
       'historique': historique.map((h) => h.toMap()).toList(),
       'commentaire': commentaire,
+      'isRetour': isRetour,
+      'colisInitialId': colisInitialId,
+      'retourId': retourId,
     };
   }
 }

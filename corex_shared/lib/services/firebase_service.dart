@@ -11,6 +11,7 @@ class FirebaseService {
   static CollectionReference get transactions => firestore.collection('transactions');
   static CollectionReference get zones => firestore.collection('zones');
   static CollectionReference get agencesTransport => firestore.collection('agencesTransport');
+  static CollectionReference get clients => firestore.collection('clients');
   static CollectionReference get counters => firestore.collection('counters');
 
   static Future<void> initialize() async {

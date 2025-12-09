@@ -53,6 +53,23 @@ class HomeScreen extends StatelessWidget {
                 );
               }),
               const SizedBox(height: 32),
+              Obx(() {
+                final user = authController.currentUser.value;
+                if (user?.role == 'pdg') {
+                  return ElevatedButton.icon(
+                    onPressed: () => Get.toNamed('/dashboard'),
+                    icon: const Icon(Icons.dashboard),
+                    label: const Text('Tableau de Bord'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+              const SizedBox(height: 16),
               const Text(
                 'Infrastructure Phase 0 complétée ✅',
                 style: TextStyle(fontSize: 14, color: Colors.green),

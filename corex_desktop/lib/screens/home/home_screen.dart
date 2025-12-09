@@ -6,6 +6,18 @@ import '../agences/agences_list_screen.dart';
 import '../zones/zones_list_screen.dart';
 import '../agences_transport/agences_transport_list_screen.dart';
 import '../colis/colis_collecte_screen.dart';
+import '../clients/clients_list_screen.dart';
+import '../agent/enregistrement_colis_screen.dart';
+import '../suivi/suivi_colis_screen.dart';
+import '../livraisons/attribution_livraison_screen.dart';
+import '../livraisons/suivi_livraisons_screen.dart';
+import '../coursier/mes_livraisons_screen.dart';
+import '../stockage/clients_stockeurs_screen.dart';
+import '../stockage/factures_stockage_screen.dart';
+import '../courses/courses_list_screen.dart';
+import '../courses/suivi_courses_screen.dart';
+import '../coursier/mes_courses_screen.dart';
+import '../../widgets/connection_indicator.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -18,6 +30,8 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('COREX Desktop'),
         actions: [
+          const ConnectionIndicator(),
+          const SizedBox(width: 16),
           Obx(() {
             final user = authController.currentUser.value;
             return Padding(
@@ -171,6 +185,14 @@ class HomeScreen extends StatelessWidget {
                             Get.to(() => const AgencesTransportListScreen());
                           },
                         ),
+                        ListTile(
+                          leading: const Icon(Icons.contacts),
+                          title: const Text('Clients'),
+                          onTap: () {
+                            Get.back();
+                            Get.to(() => const ClientsListScreen());
+                          },
+                        ),
                         const Divider(),
                       ],
                     );
@@ -198,42 +220,167 @@ class HomeScreen extends StatelessWidget {
                     Get.to(() => const ColisCollecteScreen());
                   },
                 ),
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role == 'agent' || user?.role == 'gestionnaire' || user?.role == 'admin') {
+                    return ListTile(
+                      leading: const Icon(Icons.app_registration),
+                      title: const Text('Enregistrer des colis'),
+                      onTap: () {
+                        Get.back();
+                        Get.to(() => const EnregistrementColisScreen());
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
                 ListTile(
-                  leading: const Icon(Icons.inventory_2),
-                  title: const Text('Liste des colis'),
+                  leading: const Icon(Icons.search),
+                  title: const Text('Suivi des colis'),
                   onTap: () {
                     Get.back();
-                    Get.snackbar(
-                      'Info',
-                      'Fonctionnalité à venir (Phase 3.2)',
-                      snackPosition: SnackPosition.BOTTOM,
-                    );
+                    Get.to(() => const SuiviColisScreen());
                   },
                 ),
-                ListTile(
-                  leading: const Icon(Icons.local_shipping),
-                  title: const Text('Livraisons'),
-                  onTap: () {
-                    Get.back();
-                    Get.snackbar(
-                      'Info',
-                      'Fonctionnalité à venir (Phase 6)',
-                      snackPosition: SnackPosition.BOTTOM,
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role == 'gestionnaire' || user?.role == 'admin') {
+                    return ExpansionTile(
+                      leading: const Icon(Icons.local_shipping),
+                      title: const Text('Livraisons'),
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.person_add),
+                          title: const Text('Attribution des livraisons'),
+                          onTap: () {
+                            Get.back();
+                            Get.to(() => const AttributionLivraisonScreen());
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.list_alt),
+                          title: const Text('Suivi des livraisons'),
+                          onTap: () {
+                            Get.back();
+                            Get.to(() => const SuiviLivraisonsScreen());
+                          },
+                        ),
+                      ],
                     );
-                  },
-                ),
+                  } else if (user?.role == 'coursier') {
+                    return ListTile(
+                      leading: const Icon(Icons.delivery_dining),
+                      title: const Text('Mes Livraisons'),
+                      onTap: () {
+                        Get.back();
+                        Get.to(() => const MesLivraisonsScreen());
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
                 ListTile(
                   leading: const Icon(Icons.attach_money),
                   title: const Text('Caisse'),
                   onTap: () {
                     Get.back();
-                    Get.snackbar(
-                      'Info',
-                      'Fonctionnalité à venir (Phase 8)',
-                      snackPosition: SnackPosition.BOTTOM,
-                    );
+                    Get.toNamed('/caisse');
                   },
                 ),
+
+                // Section Retours
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role == 'gestionnaire' || user?.role == 'admin' || user?.role == 'commercial') {
+                    return ListTile(
+                      leading: const Icon(Icons.keyboard_return),
+                      title: const Text('Retours de Colis'),
+                      onTap: () {
+                        Get.back();
+                        Get.toNamed('/retours');
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
+
+                // Section Stockage
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role == 'gestionnaire' || user?.role == 'admin') {
+                    return ExpansionTile(
+                      leading: const Icon(Icons.inventory_2),
+                      title: const Text('Stockage'),
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.people),
+                          title: const Text('Clients stockeurs'),
+                          onTap: () {
+                            Get.back();
+                            Get.to(() => const ClientsStockeursScreen());
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.receipt_long),
+                          title: const Text('Factures de stockage'),
+                          onTap: () {
+                            Get.back();
+                            Get.to(() => const FacturesStockageScreen());
+                          },
+                        ),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
+
+                // Section Courses
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role == 'gestionnaire' || user?.role == 'admin') {
+                    return ExpansionTile(
+                      leading: const Icon(Icons.directions_run),
+                      title: const Text('Service de Courses'),
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.add),
+                          title: const Text('Créer une course'),
+                          onTap: () {
+                            Get.back();
+                            Get.to(() => const CoursesListScreen());
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.list_alt),
+                          title: const Text('Suivi des courses'),
+                          onTap: () {
+                            Get.back();
+                            Get.to(() => const SuiviCoursesScreen());
+                          },
+                        ),
+                      ],
+                    );
+                  } else if (user?.role == 'commercial') {
+                    return ListTile(
+                      leading: const Icon(Icons.directions_run),
+                      title: const Text('Service de Courses'),
+                      onTap: () {
+                        Get.back();
+                        Get.to(() => const CoursesListScreen());
+                      },
+                    );
+                  } else if (user?.role == 'coursier') {
+                    return ListTile(
+                      leading: const Icon(Icons.directions_run),
+                      title: const Text('Mes Courses'),
+                      onTap: () {
+                        Get.back();
+                        Get.to(() => const MesCoursesScreen());
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
               ],
             ),
           ),

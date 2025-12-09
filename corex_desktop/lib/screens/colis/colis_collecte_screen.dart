@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:corex_shared/corex_shared.dart';
 import 'package:uuid/uuid.dart';
+import '../../widgets/connection_indicator.dart';
+import '../../widgets/client_selector.dart';
+import '../../widgets/sync_indicator.dart';
 
 class ColisCollecteScreen extends StatefulWidget {
   const ColisCollecteScreen({super.key});
@@ -18,6 +21,7 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
   final _expediteurNomController = TextEditingController();
   final _expediteurTelController = TextEditingController();
   final _expediteurAdresseController = TextEditingController();
+  final _expediteurVilleController = TextEditingController();
 
   // Destinataire
   final _destinataireNomController = TextEditingController();
@@ -33,16 +37,50 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
   final _tarifController = TextEditingController();
 
   String _modeLivraison = 'domicile';
-  // String? _selectedZoneId; // À utiliser dans la tâche 3.2
+  String? _selectedZoneId;
   String? _selectedAgenceTransportId;
+  final RxList<ZoneModel> _zonesList = <ZoneModel>[].obs;
+  final RxList<AgenceTransportModel> _agencesTransportList = <AgenceTransportModel>[].obs;
   bool _isPaye = false;
   bool _isLoading = false;
+
+  // Clients sélectionnés
+  ClientModel? _selectedExpediteur;
+  ClientModel? _selectedDestinataire;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadZones();
+    _loadAgencesTransport();
+  }
+
+  Future<void> _loadZones() async {
+    try {
+      final zoneService = Get.find<ZoneService>();
+      final zones = await zoneService.getAllZones();
+      _zonesList.value = zones;
+    } catch (e) {
+      print('❌ [COLLECTE] Erreur chargement zones: $e');
+    }
+  }
+
+  Future<void> _loadAgencesTransport() async {
+    try {
+      final agenceTransportService = Get.find<AgenceTransportService>();
+      final agences = await agenceTransportService.getAllAgencesTransport();
+      _agencesTransportList.value = agences.where((a) => a.isActive).toList();
+    } catch (e) {
+      print('❌ [COLLECTE] Erreur chargement agences transport: $e');
+    }
+  }
 
   @override
   void dispose() {
     _expediteurNomController.dispose();
     _expediteurTelController.dispose();
     _expediteurAdresseController.dispose();
+    _expediteurVilleController.dispose();
     _destinataireNomController.dispose();
     _destinataireTelController.dispose();
     _destinataireAdresseController.dispose();
@@ -71,14 +109,43 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
       final authController = Get.find<AuthController>();
       final user = authController.currentUser.value!;
 
+      // Vérifier que l'utilisateur a une agence
+      if (user.agenceId == null || user.agenceId!.isEmpty) {
+        Get.snackbar(
+          'Erreur',
+          'Vous devez être assigné à une agence pour collecter des colis',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
       // Initialiser le ColisController s'il n'existe pas
       if (!Get.isRegistered<ColisController>()) {
         Get.put(ColisController());
       }
 
+      // Générer le numéro de suivi local pour garantir la création
+      final localRepo = Get.find<LocalColisRepository>();
+      final numeroSuivi = localRepo.generateLocalNumeroSuivi();
+      print('📦 [COLLECTE] Numéro de suivi local généré: $numeroSuivi');
+
+      // Récupérer les informations de l'agence transport si sélectionnée
+      String? agenceTransportNom;
+      double? tarifAgenceTransport;
+
+      if (_selectedAgenceTransportId != null) {
+        final agence = _agencesTransportList.firstWhereOrNull((a) => a.id == _selectedAgenceTransportId);
+        if (agence != null) {
+          agenceTransportNom = agence.nom;
+          final ville = _destinataireVilleController.text.trim();
+          tarifAgenceTransport = agence.tarifs[ville];
+        }
+      }
+
       final colis = ColisModel(
         id: const Uuid().v4(),
-        numeroSuivi: '', // Sera généré lors de l'enregistrement
+        numeroSuivi: numeroSuivi,
         expediteurNom: _expediteurNomController.text.trim(),
         expediteurTelephone: _expediteurTelController.text.trim(),
         expediteurAdresse: _expediteurAdresseController.text.trim(),
@@ -94,9 +161,10 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
         isPaye: _isPaye,
         datePaiement: _isPaye ? DateTime.now() : null,
         modeLivraison: _modeLivraison,
+        zoneId: _selectedZoneId,
         agenceTransportId: _selectedAgenceTransportId,
-        agenceTransportNom: null, // À compléter
-        tarifAgenceTransport: null, // À compléter
+        agenceTransportNom: agenceTransportNom,
+        tarifAgenceTransport: tarifAgenceTransport,
         statut: StatutsColis.collecte,
         agenceCorexId: user.agenceId!,
         commercialId: user.id,
@@ -114,13 +182,47 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
       final colisController = Get.find<ColisController>();
       await colisController.createColis(colis);
 
+      // Créer une transaction financière si le colis est payé
+      if (_isPaye) {
+        print('💰 [COLLECTE] Création de la transaction financière');
+        final transactionService = Get.find<TransactionService>();
+        final transaction = TransactionModel(
+          id: const Uuid().v4(),
+          agenceId: user.agenceId!,
+          type: 'recette',
+          montant: double.parse(_tarifController.text),
+          date: DateTime.now(),
+          categorieRecette: 'expedition',
+          description: 'Paiement colis $numeroSuivi - ${_destinataireNomController.text.trim()}',
+          reference: numeroSuivi,
+          userId: user.id,
+        );
+
+        try {
+          await transactionService.createTransaction(transaction);
+          print('✅ [COLLECTE] Transaction créée avec succès');
+        } catch (e) {
+          print('❌ [COLLECTE] Erreur création transaction: $e');
+          // On continue même si la transaction échoue
+        }
+      }
+
       if (mounted) {
         setState(() => _isLoading = false);
         Get.back();
+
+        // Vérifier si le colis est en attente de synchronisation
+        final isPendingSync = localRepo.isPendingSync(colis.id);
+
         Get.snackbar(
           'Succès',
-          'Colis collecté avec succès',
+          isPendingSync
+              ? 'Colis collecté en mode hors ligne.\nNuméro local: $numeroSuivi\nSera synchronisé automatiquement au retour en ligne.'
+              : _isPaye
+                  ? 'Colis collecté et paiement enregistré.\nNuméro: $numeroSuivi'
+                  : 'Colis collecté avec succès.\nNuméro: $numeroSuivi',
           snackPosition: SnackPosition.BOTTOM,
+          duration: Duration(seconds: isPendingSync ? 5 : 3),
         );
       }
     } catch (e) {
@@ -141,6 +243,11 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Collecte de Colis'),
+        actions: const [
+          SyncIndicator(),
+          ConnectionIndicator(),
+          SizedBox(width: 16),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -190,37 +297,16 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
               title: const Text('Expéditeur'),
               isActive: _currentStep >= 0,
               state: _currentStep > 0 ? StepState.complete : StepState.indexed,
-              content: Column(
-                children: [
-                  TextFormField(
-                    controller: _expediteurNomController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom complet *',
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                    validator: (value) => Validators.validateRequired(value, 'Le nom'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _expediteurTelController,
-                    decoration: const InputDecoration(
-                      labelText: 'Téléphone *',
-                      prefixIcon: Icon(Icons.phone),
-                      hintText: '6XXXXXXXX',
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: Validators.validatePhone,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _expediteurAdresseController,
-                    decoration: const InputDecoration(
-                      labelText: 'Adresse *',
-                      prefixIcon: Icon(Icons.location_on),
-                    ),
-                    validator: (value) => Validators.validateRequired(value, 'L\'adresse'),
-                  ),
-                ],
+              content: ClientSelector(
+                label: 'Expéditeur',
+                type: 'expediteur',
+                onClientSelected: (client) {
+                  setState(() => _selectedExpediteur = client);
+                },
+                nomController: _expediteurNomController,
+                telephoneController: _expediteurTelController,
+                adresseController: _expediteurAdresseController,
+                villeController: _expediteurVilleController,
               ),
             ),
 
@@ -229,54 +315,17 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
               title: const Text('Destinataire'),
               isActive: _currentStep >= 1,
               state: _currentStep > 1 ? StepState.complete : StepState.indexed,
-              content: Column(
-                children: [
-                  TextFormField(
-                    controller: _destinataireNomController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom complet *',
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                    validator: (value) => Validators.validateRequired(value, 'Le nom'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _destinataireTelController,
-                    decoration: const InputDecoration(
-                      labelText: 'Téléphone *',
-                      prefixIcon: Icon(Icons.phone),
-                      hintText: '6XXXXXXXX',
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: Validators.validatePhone,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _destinataireVilleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Ville *',
-                      prefixIcon: Icon(Icons.location_city),
-                    ),
-                    validator: (value) => Validators.validateRequired(value, 'La ville'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _destinataireAdresseController,
-                    decoration: const InputDecoration(
-                      labelText: 'Adresse *',
-                      prefixIcon: Icon(Icons.location_on),
-                    ),
-                    validator: (value) => Validators.validateRequired(value, 'L\'adresse'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _destinataireQuartierController,
-                    decoration: const InputDecoration(
-                      labelText: 'Quartier (optionnel)',
-                      prefixIcon: Icon(Icons.map),
-                    ),
-                  ),
-                ],
+              content: ClientSelector(
+                label: 'Destinataire',
+                type: 'destinataire',
+                onClientSelected: (client) {
+                  setState(() => _selectedDestinataire = client);
+                },
+                nomController: _destinataireNomController,
+                telephoneController: _destinataireTelController,
+                adresseController: _destinataireAdresseController,
+                villeController: _destinataireVilleController,
+                quartierController: _destinataireQuartierController,
               ),
             ),
 
@@ -324,16 +373,6 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
               isActive: _currentStep >= 3,
               content: Column(
                 children: [
-                  TextFormField(
-                    controller: _tarifController,
-                    decoration: const InputDecoration(
-                      labelText: 'Montant (FCFA) *',
-                      prefixIcon: Icon(Icons.attach_money),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) => Validators.validatePositiveNumber(value, 'Le montant'),
-                  ),
-                  const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: _modeLivraison,
                     decoration: const InputDecoration(
@@ -347,17 +386,184 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                     ],
                     onChanged: (value) {
                       if (value != null) {
-                        setState(() => _modeLivraison = value);
+                        setState(() {
+                          _modeLivraison = value;
+                          // Réinitialiser les sélections
+                          _selectedZoneId = null;
+                          _selectedAgenceTransportId = null;
+                        });
                       }
                     },
                   ),
                   const SizedBox(height: 16),
-                  CheckboxListTile(
-                    title: const Text('Payé'),
-                    value: _isPaye,
-                    onChanged: (value) {
-                      setState(() => _isPaye = value ?? false);
-                    },
+
+                  // Zone de livraison (si livraison à domicile)
+                  if (_modeLivraison == 'domicile') ...[
+                    Obx(() {
+                      final zoneExists = _selectedZoneId == null || _zonesList.any((z) => z.id == _selectedZoneId);
+
+                      return DropdownButtonFormField<String>(
+                        value: zoneExists ? _selectedZoneId : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Zone de livraison *',
+                          prefixIcon: Icon(Icons.map),
+                        ),
+                        items: _zonesList
+                            .map((zone) => DropdownMenuItem(
+                                  value: zone.id,
+                                  child: Text('${zone.nom} - ${zone.tarifLivraison.toStringAsFixed(0)} FCFA'),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedZoneId = value);
+                        },
+                        validator: (value) {
+                          if (_modeLivraison == 'domicile' && value == null) {
+                            return 'Veuillez sélectionner une zone';
+                          }
+                          return null;
+                        },
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Agence de transport (si livraison par agence transport)
+                  if (_modeLivraison == 'agenceTransport') ...[
+                    Obx(() {
+                      final agenceExists = _selectedAgenceTransportId == null || _agencesTransportList.any((a) => a.id == _selectedAgenceTransportId);
+
+                      return DropdownButtonFormField<String>(
+                        value: agenceExists ? _selectedAgenceTransportId : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Agence de transport *',
+                          prefixIcon: Icon(Icons.business),
+                        ),
+                        items: _agencesTransportList
+                            .map((agence) => DropdownMenuItem(
+                                  value: agence.id,
+                                  child: Text(agence.nom),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedAgenceTransportId = value);
+                        },
+                        validator: (value) {
+                          if (_modeLivraison == 'agenceTransport' && value == null) {
+                            return 'Veuillez sélectionner une agence';
+                          }
+                          return null;
+                        },
+                      );
+                    }),
+                    const SizedBox(height: 16),
+
+                    // Afficher le tarif de l'agence transport sélectionnée
+                    if (_selectedAgenceTransportId != null)
+                      Obx(() {
+                        final agence = _agencesTransportList.firstWhereOrNull((a) => a.id == _selectedAgenceTransportId);
+                        if (agence != null) {
+                          final ville = _destinataireVilleController.text.trim();
+                          final tarif = agence.tarifs[ville];
+
+                          return Card(
+                            color: Colors.blue.shade50,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline, color: Colors.blue),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      tarif != null ? 'Tarif vers $ville: ${tarif.toStringAsFixed(0)} FCFA' : 'Aucun tarif défini pour $ville',
+                                      style: const TextStyle(fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }),
+                    const SizedBox(height: 16),
+                  ],
+
+                  TextFormField(
+                    controller: _tarifController,
+                    decoration: const InputDecoration(
+                      labelText: 'Montant (FCFA) *',
+                      prefixIcon: Icon(Icons.attach_money),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) => Validators.validatePositiveNumber(value, 'Le montant'),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Section Paiement
+                  Card(
+                    elevation: 2,
+                    color: _isPaye ? Colors.green.shade50 : Colors.grey.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _isPaye ? Icons.check_circle : Icons.payment,
+                                color: _isPaye ? Colors.green : Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Paiement',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: _isPaye ? Colors.green.shade900 : Colors.grey.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SwitchListTile(
+                            title: Text(
+                              _isPaye ? 'Colis payé' : 'Colis non payé',
+                              style: const TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            subtitle: Text(
+                              _isPaye ? 'Une transaction financière sera créée automatiquement' : 'Le paiement pourra être enregistré plus tard',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            value: _isPaye,
+                            activeColor: Colors.green,
+                            onChanged: (value) {
+                              setState(() => _isPaye = value);
+                            },
+                          ),
+                          if (_isPaye) ...[
+                            const Divider(),
+                            Row(
+                              children: [
+                                const Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Montant: ${_tarifController.text.isEmpty ? "0" : _tarifController.text} FCFA',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

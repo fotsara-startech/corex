@@ -25,6 +25,7 @@ dependencies:
   
   # UI
   cupertino_icons: ^1.0.8
+  fl_chart: ^0.69.0
   
   # PDF & Printing
   pdf: ^3.11.1
@@ -34,6 +35,7 @@ dependencies:
   uuid: ^4.5.1
   intl: ^0.19.0
   shared_preferences: ^2.3.2
+  image_picker: ^1.1.2
   
   # Mobile
   connectivity_plus: ^6.0.5
