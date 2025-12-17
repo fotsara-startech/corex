@@ -6,6 +6,7 @@ import '../models/transaction_model.dart';
 import '../repositories/local_colis_repository.dart';
 import 'firebase_service.dart';
 import 'transaction_service.dart';
+import 'notification_service.dart';
 
 class ColisService extends GetxService {
   LocalColisRepository? _localRepo;
@@ -213,6 +214,7 @@ class ColisService extends GetxService {
     }
 
     final colis = ColisModel.fromFirestore(colisDoc);
+    final oldStatut = colis.statut;
 
     // Ajouter à l'historique
     final historique = List<HistoriqueStatut>.from(colis.historique);
@@ -237,6 +239,31 @@ class ColisService extends GetxService {
     }
 
     await FirebaseService.colis.doc(colisId).update(updateData);
+
+    // Envoyer les notifications automatiques
+    try {
+      if (Get.isRegistered<NotificationService>()) {
+        final notificationService = Get.find<NotificationService>();
+        final updatedColis = colis.copyWith(statut: newStatut, historique: historique);
+
+        // Notification de changement de statut
+        await notificationService.notifyColisStatusChange(
+          colis: updatedColis,
+          newStatus: newStatut,
+          changedBy: userId,
+        );
+
+        // Notification spéciale d'arrivée à destination
+        if (newStatut == 'arriveDestination') {
+          await notificationService.notifyColisArrival(colis: updatedColis);
+        }
+
+        print('✅ [COLIS_SERVICE] Notifications envoyées pour changement de statut: $oldStatut → $newStatut');
+      }
+    } catch (e) {
+      print('⚠️ [COLIS_SERVICE] Erreur lors de l\'envoi des notifications: $e');
+      // Ne pas bloquer la mise à jour du statut si les notifications échouent
+    }
   }
 
   Stream<List<ColisModel>> watchColisByAgence(String agenceId) {

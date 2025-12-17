@@ -47,16 +47,20 @@ class ClientService extends GetxService {
 
   Future<ClientModel?> searchClientByPhone(String telephone, String agenceId) async {
     print('🔍 [CLIENT_SERVICE] Recherche client par téléphone: $telephone');
-    final snapshot = await FirebaseService.clients.where('agenceId', isEqualTo: agenceId).where('telephone', isEqualTo: telephone).limit(1).get();
+
+    // Normaliser le numéro de téléphone (supprimer espaces, tirets, etc.)
+    final normalizedPhone = telephone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+
+    final snapshot = await FirebaseService.clients.where('agenceId', isEqualTo: agenceId).where('telephone', isEqualTo: normalizedPhone).limit(1).get();
 
     if (snapshot.docs.isEmpty) {
-      print('❌ [CLIENT_SERVICE] Aucun client trouvé');
+      print('❌ [CLIENT_SERVICE] Aucun client trouvé pour: $normalizedPhone');
       return null;
     }
 
-    final data = snapshot.docs.first.data() as Map<String, dynamic>?;
-    print('✅ [CLIENT_SERVICE] Client trouvé: ${data?['nom'] ?? 'Inconnu'}');
-    return ClientModel.fromFirestore(snapshot.docs.first);
+    final client = ClientModel.fromFirestore(snapshot.docs.first);
+    print('✅ [CLIENT_SERVICE] Client trouvé: ${client.nom}');
+    return client;
   }
 
   Future<List<ClientModel>> searchClientsByName(String query, String agenceId) async {
@@ -68,6 +72,61 @@ class ClientService extends GetxService {
     // Trier par nom
     results.sort((a, b) => a.nom.compareTo(b.nom));
 
+    return results;
+  }
+
+  Future<ClientModel?> searchClientByEmail(String email, String agenceId) async {
+    print('🔍 [CLIENT_SERVICE] Recherche client par email: $email');
+
+    // Normaliser l'email (supprimer espaces et convertir en minuscules)
+    final normalizedEmail = email.trim().toLowerCase();
+
+    final snapshot = await FirebaseService.clients
+        .where('agenceId', isEqualTo: agenceId)
+        .where('email', isEqualTo: normalizedEmail)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      print('❌ [CLIENT_SERVICE] Aucun client trouvé pour: $normalizedEmail');
+      return null;
+    }
+
+    final client = ClientModel.fromFirestore(snapshot.docs.first);
+    print('✅ [CLIENT_SERVICE] Client trouvé par email: ${client.nom}');
+    return client;
+  }
+
+  Future<List<ClientModel>> searchClientsMultiCriteria(String query, String agenceId) async {
+    print('🔍 [CLIENT_SERVICE] Recherche multi-critères: $query');
+    
+    final snapshot = await FirebaseService.clients.where('agenceId', isEqualTo: agenceId).get();
+    final queryLower = query.toLowerCase().trim();
+
+    // Filtrage par nom, téléphone ou email
+    final results = snapshot.docs
+        .map((doc) => ClientModel.fromFirestore(doc))
+        .where((client) {
+          final nomMatch = client.nom.toLowerCase().contains(queryLower);
+          final phoneMatch = client.telephone.contains(query.replaceAll(RegExp(r'[\s\-\(\)]'), ''));
+          final emailMatch = client.email?.toLowerCase().contains(queryLower) ?? false;
+          
+          return nomMatch || phoneMatch || emailMatch;
+        })
+        .toList();
+
+    // Trier par pertinence (nom exact > nom partiel > téléphone > email)
+    results.sort((a, b) {
+      final aNameExact = a.nom.toLowerCase() == queryLower;
+      final bNameExact = b.nom.toLowerCase() == queryLower;
+      
+      if (aNameExact && !bNameExact) return -1;
+      if (!aNameExact && bNameExact) return 1;
+      
+      return a.nom.compareTo(b.nom);
+    });
+
+    print('✅ [CLIENT_SERVICE] ${results.length} clients trouvés');
     return results;
   }
 

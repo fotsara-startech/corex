@@ -47,6 +47,34 @@ class ClientController extends GetxController {
     }
   }
 
+  Future<ClientModel?> searchByEmail(String email) async {
+    try {
+      final authController = Get.find<AuthController>();
+      final user = authController.currentUser.value;
+
+      if (user == null || user.agenceId == null) return null;
+
+      return await _clientService.searchClientByEmail(email, user.agenceId!);
+    } catch (e) {
+      print('❌ [CLIENT_CONTROLLER] Erreur recherche par email: $e');
+      return null;
+    }
+  }
+
+  Future<List<ClientModel>> searchMultiCriteria(String query) async {
+    try {
+      final authController = Get.find<AuthController>();
+      final user = authController.currentUser.value;
+
+      if (user == null || user.agenceId == null) return [];
+
+      return await _clientService.searchClientsMultiCriteria(query, user.agenceId!);
+    } catch (e) {
+      print('❌ [CLIENT_CONTROLLER] Erreur recherche multi-critères: $e');
+      return [];
+    }
+  }
+
   Future<bool> createClient(ClientModel client) async {
     try {
       await _clientService.createClient(client);

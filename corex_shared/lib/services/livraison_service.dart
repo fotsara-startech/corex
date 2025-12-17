@@ -2,12 +2,48 @@ import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../models/livraison_model.dart';
 import '../models/transaction_model.dart';
+import '../models/colis_model.dart';
 import 'firebase_service.dart';
 import 'transaction_service.dart';
+import 'notification_service.dart';
+import 'colis_service.dart';
 
 class LivraisonService extends GetxService {
   Future<void> createLivraison(LivraisonModel livraison) async {
     await FirebaseService.livraisons.doc(livraison.id).set(livraison.toFirestore());
+  }
+
+  /// Crée une livraison et envoie les notifications d'attribution
+  Future<void> createLivraisonWithNotification({
+    required LivraisonModel livraison,
+    required String colisId,
+    required String coursierId,
+  }) async {
+    // Créer la livraison
+    await createLivraison(livraison);
+
+    // Envoyer les notifications
+    try {
+      if (Get.isRegistered<NotificationService>() && Get.isRegistered<ColisService>()) {
+        final notificationService = Get.find<NotificationService>();
+        final colisService = Get.find<ColisService>();
+
+        // Récupérer les détails du colis
+        final colis = await colisService.getColisById(colisId);
+        if (colis != null) {
+          await notificationService.notifyLivraisonAttribution(
+            livraison: livraison,
+            colis: colis,
+            coursierId: coursierId,
+          );
+
+          print('✅ [LIVRAISON_SERVICE] Notification d\'attribution envoyée pour la livraison ${livraison.id}');
+        }
+      }
+    } catch (e) {
+      print('⚠️ [LIVRAISON_SERVICE] Erreur lors de l\'envoi des notifications: $e');
+      // Ne pas bloquer la création de la livraison si les notifications échouent
+    }
   }
 
   Future<void> updateLivraison(String livraisonId, Map<String, dynamic> data) async {

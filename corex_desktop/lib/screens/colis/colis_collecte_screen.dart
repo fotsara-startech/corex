@@ -20,12 +20,14 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
   // Expéditeur
   final _expediteurNomController = TextEditingController();
   final _expediteurTelController = TextEditingController();
+  final _expediteurEmailController = TextEditingController();
   final _expediteurAdresseController = TextEditingController();
   final _expediteurVilleController = TextEditingController();
 
   // Destinataire
   final _destinataireNomController = TextEditingController();
   final _destinataireTelController = TextEditingController();
+  final _destinataireEmailController = TextEditingController();
   final _destinataireAdresseController = TextEditingController();
   final _destinataireVilleController = TextEditingController();
   final _destinataireQuartierController = TextEditingController();
@@ -44,9 +46,7 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
   bool _isPaye = false;
   bool _isLoading = false;
 
-  // Clients sélectionnés
-  ClientModel? _selectedExpediteur;
-  ClientModel? _selectedDestinataire;
+  // Note: Les clients sélectionnés sont gérés directement par les contrôleurs de texte
 
   @override
   void initState() {
@@ -79,10 +79,12 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
   void dispose() {
     _expediteurNomController.dispose();
     _expediteurTelController.dispose();
+    _expediteurEmailController.dispose();
     _expediteurAdresseController.dispose();
     _expediteurVilleController.dispose();
     _destinataireNomController.dispose();
     _destinataireTelController.dispose();
+    _destinataireEmailController.dispose();
     _destinataireAdresseController.dispose();
     _destinataireVilleController.dispose();
     _destinataireQuartierController.dispose();
@@ -148,9 +150,11 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
         numeroSuivi: numeroSuivi,
         expediteurNom: _expediteurNomController.text.trim(),
         expediteurTelephone: _expediteurTelController.text.trim(),
+        expediteurEmail: _expediteurEmailController.text.trim().isEmpty ? null : _expediteurEmailController.text.trim(),
         expediteurAdresse: _expediteurAdresseController.text.trim(),
         destinataireNom: _destinataireNomController.text.trim(),
         destinataireTelephone: _destinataireTelController.text.trim(),
+        destinataireEmail: _destinataireEmailController.text.trim().isEmpty ? null : _destinataireEmailController.text.trim(),
         destinataireAdresse: _destinataireAdresseController.text.trim(),
         destinataireVille: _destinataireVilleController.text.trim(),
         destinataireQuartier: _destinataireQuartierController.text.trim().isEmpty ? null : _destinataireQuartierController.text.trim(),
@@ -177,6 +181,9 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
             commentaire: 'Colis collecté par ${user.nomComplet}',
           ),
         ],
+        isRetour: false, // Nouveau colis, pas un retour
+        colisInitialId: null, // Pas de colis initial pour un nouveau colis
+        retourId: null, // Pas de retour associé pour l'instant
       );
 
       final colisController = Get.find<ColisController>();
@@ -301,10 +308,11 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                 label: 'Expéditeur',
                 type: 'expediteur',
                 onClientSelected: (client) {
-                  setState(() => _selectedExpediteur = client);
+                  // Le client est automatiquement rempli dans les contrôleurs
                 },
                 nomController: _expediteurNomController,
                 telephoneController: _expediteurTelController,
+                emailController: _expediteurEmailController,
                 adresseController: _expediteurAdresseController,
                 villeController: _expediteurVilleController,
               ),
@@ -319,10 +327,11 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                 label: 'Destinataire',
                 type: 'destinataire',
                 onClientSelected: (client) {
-                  setState(() => _selectedDestinataire = client);
+                  // Le client est automatiquement rempli dans les contrôleurs
                 },
                 nomController: _destinataireNomController,
                 telephoneController: _destinataireTelController,
+                emailController: _destinataireEmailController,
                 adresseController: _destinataireAdresseController,
                 villeController: _destinataireVilleController,
                 quartierController: _destinataireQuartierController,

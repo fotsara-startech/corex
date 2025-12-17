@@ -90,7 +90,10 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
               // Filtrer par recherche
               if (_searchController.text.isNotEmpty) {
                 final query = _searchController.text.toLowerCase();
-                clients = clients.where((c) => c.nom.toLowerCase().contains(query) || c.telephone.contains(query) || c.ville.toLowerCase().contains(query)).toList().obs;
+                clients = clients
+                    .where((c) => c.nom.toLowerCase().contains(query) || c.telephone.contains(query) || c.ville.toLowerCase().contains(query) || (c.email?.toLowerCase().contains(query) ?? false))
+                    .toList()
+                    .obs;
               }
 
               if (clients.isEmpty) {
@@ -117,6 +120,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('📞 ${client.telephone}'),
+                          if (client.email != null && client.email!.isNotEmpty) Text('📧 ${client.email}'),
                           Text('📍 ${client.ville} - ${client.adresse}'),
                           if (client.quartier != null) Text('🏘️ ${client.quartier}'),
                         ],
@@ -157,6 +161,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildDetailRow('Téléphone', client.telephone),
+            if (client.email != null && client.email!.isNotEmpty) _buildDetailRow('Email', client.email!),
             _buildDetailRow('Ville', client.ville),
             _buildDetailRow('Adresse', client.adresse),
             if (client.quartier != null) _buildDetailRow('Quartier', client.quartier!),

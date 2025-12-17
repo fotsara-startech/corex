@@ -37,9 +37,11 @@ class ColisModel {
   final String numeroSuivi;
   final String expediteurNom;
   final String expediteurTelephone;
+  final String? expediteurEmail;
   final String expediteurAdresse;
   final String destinataireNom;
   final String destinataireTelephone;
+  final String? destinataireEmail;
   final String destinataireAdresse;
   final String destinataireVille;
   final String? destinataireQuartier;
@@ -72,9 +74,11 @@ class ColisModel {
     required this.numeroSuivi,
     required this.expediteurNom,
     required this.expediteurTelephone,
+    this.expediteurEmail,
     required this.expediteurAdresse,
     required this.destinataireNom,
     required this.destinataireTelephone,
+    this.destinataireEmail,
     required this.destinataireAdresse,
     required this.destinataireVille,
     this.destinataireQuartier,
@@ -98,7 +102,7 @@ class ColisModel {
     this.dateLivraison,
     required this.historique,
     this.commentaire,
-    this.isRetour = false,
+    required this.isRetour,
     this.colisInitialId,
     this.retourId,
   });
@@ -110,9 +114,11 @@ class ColisModel {
       numeroSuivi: data['numeroSuivi'] ?? '',
       expediteurNom: data['expediteurNom'] ?? '',
       expediteurTelephone: data['expediteurTelephone'] ?? '',
+      expediteurEmail: data['expediteurEmail'],
       expediteurAdresse: data['expediteurAdresse'] ?? '',
       destinataireNom: data['destinataireNom'] ?? '',
       destinataireTelephone: data['destinataireTelephone'] ?? '',
+      destinataireEmail: data['destinataireEmail'],
       destinataireAdresse: data['destinataireAdresse'] ?? '',
       destinataireVille: data['destinataireVille'] ?? '',
       destinataireQuartier: data['destinataireQuartier'],
@@ -147,9 +153,11 @@ class ColisModel {
       'numeroSuivi': numeroSuivi,
       'expediteurNom': expediteurNom,
       'expediteurTelephone': expediteurTelephone,
+      'expediteurEmail': expediteurEmail,
       'expediteurAdresse': expediteurAdresse,
       'destinataireNom': destinataireNom,
       'destinataireTelephone': destinataireTelephone,
+      'destinataireEmail': destinataireEmail,
       'destinataireAdresse': destinataireAdresse,
       'destinataireVille': destinataireVille,
       'destinataireQuartier': destinataireQuartier,
@@ -177,5 +185,82 @@ class ColisModel {
       'colisInitialId': colisInitialId,
       'retourId': retourId,
     };
+  }
+
+  /// Crée une copie du colis avec les champs modifiés
+  ColisModel copyWith({
+    String? id,
+    String? numeroSuivi,
+    String? expediteurNom,
+    String? expediteurTelephone,
+    String? expediteurEmail,
+    String? expediteurAdresse,
+    String? destinataireNom,
+    String? destinataireTelephone,
+    String? destinataireEmail,
+    String? destinataireAdresse,
+    String? destinataireVille,
+    String? destinataireQuartier,
+    String? contenu,
+    double? poids,
+    String? dimensions,
+    double? montantTarif,
+    bool? isPaye,
+    DateTime? datePaiement,
+    String? modeLivraison,
+    String? zoneId,
+    String? agenceTransportId,
+    String? agenceTransportNom,
+    double? tarifAgenceTransport,
+    String? statut,
+    String? agenceCorexId,
+    String? commercialId,
+    String? coursierId,
+    DateTime? dateCollecte,
+    DateTime? dateEnregistrement,
+    DateTime? dateLivraison,
+    List<HistoriqueStatut>? historique,
+    String? commentaire,
+    bool? isRetour,
+    String? colisInitialId,
+    String? retourId,
+  }) {
+    return ColisModel(
+      id: id ?? this.id,
+      numeroSuivi: numeroSuivi ?? this.numeroSuivi,
+      expediteurNom: expediteurNom ?? this.expediteurNom,
+      expediteurTelephone: expediteurTelephone ?? this.expediteurTelephone,
+      expediteurEmail: expediteurEmail ?? this.expediteurEmail,
+      expediteurAdresse: expediteurAdresse ?? this.expediteurAdresse,
+      destinataireNom: destinataireNom ?? this.destinataireNom,
+      destinataireTelephone: destinataireTelephone ?? this.destinataireTelephone,
+      destinataireEmail: destinataireEmail ?? this.destinataireEmail,
+      destinataireAdresse: destinataireAdresse ?? this.destinataireAdresse,
+      destinataireVille: destinataireVille ?? this.destinataireVille,
+      destinataireQuartier: destinataireQuartier ?? this.destinataireQuartier,
+      contenu: contenu ?? this.contenu,
+      poids: poids ?? this.poids,
+      dimensions: dimensions ?? this.dimensions,
+      montantTarif: montantTarif ?? this.montantTarif,
+      isPaye: isPaye ?? this.isPaye,
+      datePaiement: datePaiement ?? this.datePaiement,
+      modeLivraison: modeLivraison ?? this.modeLivraison,
+      zoneId: zoneId ?? this.zoneId,
+      agenceTransportId: agenceTransportId ?? this.agenceTransportId,
+      agenceTransportNom: agenceTransportNom ?? this.agenceTransportNom,
+      tarifAgenceTransport: tarifAgenceTransport ?? this.tarifAgenceTransport,
+      statut: statut ?? this.statut,
+      agenceCorexId: agenceCorexId ?? this.agenceCorexId,
+      commercialId: commercialId ?? this.commercialId,
+      coursierId: coursierId ?? this.coursierId,
+      dateCollecte: dateCollecte ?? this.dateCollecte,
+      dateEnregistrement: dateEnregistrement ?? this.dateEnregistrement,
+      dateLivraison: dateLivraison ?? this.dateLivraison,
+      historique: historique ?? this.historique,
+      commentaire: commentaire ?? this.commentaire,
+      isRetour: isRetour ?? this.isRetour,
+      colisInitialId: colisInitialId ?? this.colisInitialId,
+      retourId: retourId ?? this.retourId,
+    );
   }
 }

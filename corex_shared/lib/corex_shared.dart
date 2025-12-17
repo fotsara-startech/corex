@@ -34,6 +34,9 @@ export 'services/connectivity_service.dart';
 export 'services/sync_service.dart';
 export 'services/export_service.dart';
 export 'services/course_service.dart';
+export 'services/email_service.dart';
+export 'services/notification_service.dart';
+export 'services/alert_service.dart';
 
 // Controllers
 export 'controllers/auth_controller.dart';
@@ -50,6 +53,7 @@ export 'controllers/suivi_controller.dart';
 export 'controllers/dashboard_controller.dart';
 export 'controllers/course_controller.dart';
 export 'controllers/retour_controller.dart';
+export 'controllers/notification_controller.dart';
 
 // Constants
 export 'constants/app_constants.dart';

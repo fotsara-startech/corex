@@ -15,6 +15,7 @@ import 'screens/coursier/details_livraison_screen.dart';
 import 'screens/caisse/caisse_dashboard_screen.dart';
 import 'screens/retours/creer_retour_screen.dart';
 import 'screens/retours/liste_retours_screen.dart';
+import 'screens/notifications/notifications_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,6 +94,9 @@ void main() async {
   Get.put(StockageService(), permanent: true);
   Get.put(CourseService(), permanent: true);
   Get.put(SyncService(), permanent: true);
+  Get.put(EmailService(), permanent: true);
+  Get.put(NotificationService(), permanent: true);
+  Get.put(AlertService(), permanent: true);
   print('✅ [GETX] Services initialisés');
 
   // Initialiser les controllers
@@ -109,6 +113,7 @@ void main() async {
   Get.put(StockageController(), permanent: true);
   Get.put(CourseController(), permanent: true);
   Get.put(RetourController(), permanent: true);
+  Get.put(NotificationController(), permanent: true);
   print('✅ [GETX] Controllers initialisés');
 
   runApp(const CorexDesktopApp());
@@ -134,6 +139,7 @@ class CorexDesktopApp extends StatelessWidget {
         GetPage(name: '/caisse', page: () => const CaisseDashboardScreen()),
         GetPage(name: '/retours', page: () => const ListeRetoursScreen()),
         GetPage(name: '/retours/creer', page: () => const CreerRetourScreen()),
+        GetPage(name: '/notifications', page: () => const NotificationsScreen()),
       ],
     );
   }

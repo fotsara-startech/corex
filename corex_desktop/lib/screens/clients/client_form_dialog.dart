@@ -16,6 +16,7 @@ class _ClientFormDialogState extends State<ClientFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nomController = TextEditingController();
   final _telephoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _adresseController = TextEditingController();
   final _villeController = TextEditingController();
   final _quartierController = TextEditingController();
@@ -31,6 +32,7 @@ class _ClientFormDialogState extends State<ClientFormDialog> {
     if (isEditMode) {
       _nomController.text = widget.client!.nom;
       _telephoneController.text = widget.client!.telephone;
+      _emailController.text = widget.client!.email ?? '';
       _adresseController.text = widget.client!.adresse;
       _villeController.text = widget.client!.ville;
       _quartierController.text = widget.client!.quartier ?? '';
@@ -42,6 +44,7 @@ class _ClientFormDialogState extends State<ClientFormDialog> {
   void dispose() {
     _nomController.dispose();
     _telephoneController.dispose();
+    _emailController.dispose();
     _adresseController.dispose();
     _villeController.dispose();
     _quartierController.dispose();
@@ -79,6 +82,7 @@ class _ClientFormDialogState extends State<ClientFormDialog> {
           {
             'nom': _nomController.text.trim(),
             'telephone': _telephoneController.text.trim(),
+            'email': _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
             'adresse': _adresseController.text.trim(),
             'ville': _villeController.text.trim(),
             'quartier': _quartierController.text.trim().isEmpty ? null : _quartierController.text.trim(),
@@ -91,6 +95,7 @@ class _ClientFormDialogState extends State<ClientFormDialog> {
           id: const Uuid().v4(),
           nom: _nomController.text.trim(),
           telephone: _telephoneController.text.trim(),
+          email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
           adresse: _adresseController.text.trim(),
           ville: _villeController.text.trim(),
           quartier: _quartierController.text.trim().isEmpty ? null : _quartierController.text.trim(),
@@ -165,6 +170,24 @@ class _ClientFormDialogState extends State<ClientFormDialog> {
                   keyboardType: TextInputType.phone,
                   enabled: !isEditMode, // Téléphone non modifiable en édition
                   validator: Validators.validatePhone,
+                ),
+                const SizedBox(height: 16),
+
+                // Email
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email (optionnel)',
+                    prefixIcon: Icon(Icons.email),
+                    hintText: 'exemple@email.com',
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      return Validators.validateEmail(value);
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
 

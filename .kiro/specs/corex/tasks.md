@@ -400,9 +400,9 @@ Le projet est divisé en phases correspondant aux modules fonctionnels principau
   - Gérer le workflow complet: collecte → enregistre → enTransit → livre ✅
   - _Exigences: 14.4, 14.5, 14.6_
 
-### Phase 13 - Notifications et Emails
+### Phase 13 - Notifications et Emails ✅
 
-- [ ] 13.1 Implémenter le service d'envoi d'emails
+- [x] 13.1 Implémenter le service d'envoi d'emails
   - Créer EmailService avec configuration SMTP (utiliser mailer package)
   - Configurer les paramètres SMTP (serveur, port, credentials)
   - Développer les templates d'emails en HTML (changement statut, arrivée, facture)
@@ -411,7 +411,7 @@ Le projet est divisé en phases correspondant aux modules fonctionnels principau
   - Logger tous les envois d'emails (succès et échecs)
   - _Exigences: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
 
-- [ ] 13.2 Développer les notifications automatiques
+- [x] 13.2 Développer les notifications automatiques
   - Implémenter les notifications de changement de statut (email au client)
   - Ajouter les notifications d'arrivée à destination (email au destinataire)
   - Développer les notifications d'attribution de livraison (email au coursier)
@@ -420,7 +420,7 @@ Le projet est divisé en phases correspondant aux modules fonctionnels principau
   - Permettre la désactivation des notifications par utilisateur
   - _Exigences: 16.1, 16.2, 16.3, 16.4_
 
-- [ ] 13.3 Créer le système d'alertes
+- [x] 13.3 Créer le système d'alertes
   - Développer les alertes de seuil (stock bas, crédit dépassé, etc.)
   - Implémenter les notifications push pour mobile (Firebase Cloud Messaging)
   - Ajouter les alertes dans l'interface utilisateur (badges, notifications in-app)
@@ -563,7 +563,7 @@ Le projet est divisé en phases correspondant aux modules fonctionnels principau
 - Phases 0, 1, 2, 3, 4, 5, 6, 7, 8
 
 **Priorité Moyenne** :
-- Phases 9, 13, 14, 15
+- Phases 9, 14, 15
 
 **Priorité Basse (Extensions)** :
 - Phases 10, 11, 12

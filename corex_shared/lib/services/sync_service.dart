@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/colis_model.dart';
 import '../repositories/local_colis_repository.dart';
 import 'firebase_service.dart';
@@ -99,35 +98,8 @@ class SyncService extends GetxService {
         print('📦 [SYNC_SERVICE] Nouveau numéro: $finalNumeroSuivi');
 
         // Mettre à jour le colis localement avec le nouveau numéro
-        final updatedColis = ColisModel(
-          id: colis.id,
+        final updatedColis = colis.copyWith(
           numeroSuivi: finalNumeroSuivi,
-          expediteurNom: colis.expediteurNom,
-          expediteurTelephone: colis.expediteurTelephone,
-          expediteurAdresse: colis.expediteurAdresse,
-          destinataireNom: colis.destinataireNom,
-          destinataireTelephone: colis.destinataireTelephone,
-          destinataireAdresse: colis.destinataireAdresse,
-          destinataireVille: colis.destinataireVille,
-          destinataireQuartier: colis.destinataireQuartier,
-          contenu: colis.contenu,
-          poids: colis.poids,
-          dimensions: colis.dimensions,
-          montantTarif: colis.montantTarif,
-          isPaye: colis.isPaye,
-          datePaiement: colis.datePaiement,
-          modeLivraison: colis.modeLivraison,
-          zoneId: colis.zoneId,
-          agenceTransportId: colis.agenceTransportId,
-          agenceTransportNom: colis.agenceTransportNom,
-          tarifAgenceTransport: colis.tarifAgenceTransport,
-          statut: colis.statut,
-          agenceCorexId: colis.agenceCorexId,
-          commercialId: colis.commercialId,
-          coursierId: colis.coursierId,
-          dateCollecte: colis.dateCollecte,
-          dateEnregistrement: colis.dateEnregistrement,
-          dateLivraison: colis.dateLivraison,
           historique: [
             ...colis.historique,
             HistoriqueStatut(
@@ -137,7 +109,6 @@ class SyncService extends GetxService {
               commentaire: 'Synchronisation: numéro local ${colis.numeroSuivi} remplacé par $finalNumeroSuivi',
             ),
           ],
-          commentaire: colis.commentaire,
         );
 
         // Sauvegarder dans Firebase

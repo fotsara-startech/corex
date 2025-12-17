@@ -27,7 +27,54 @@ class LocalColisRepository extends GetxService {
       print('🔄 [LOCAL_REPO] ${_pendingSyncBox!.length} colis en attente de sync');
     } catch (e) {
       print('❌ [LOCAL_REPO] Erreur initialisation Hive: $e');
-      rethrow;
+
+      // Si c'est une erreur de format, nettoyer le cache
+      if (e.toString().contains('type cast') || e.toString().contains('subtype')) {
+        print('🧹 [LOCAL_REPO] Détection d\'erreur de format, nettoyage du cache...');
+        await _clearCorruptedCache();
+
+        // Réessayer l'initialisation
+        _colisBox = await Hive.openBox<ColisModel>(_boxName);
+        _counterBox = await Hive.openBox<int>(_counterBoxName);
+        _pendingSyncBox = await Hive.openBox<String>(_pendingSyncBoxName);
+
+        print('✅ [LOCAL_REPO] Cache nettoyé et réinitialisé avec succès');
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  /// Nettoie manuellement tout le cache Hive (méthode publique)
+  Future<void> clearAllCache() async {
+    print('🧹 [LOCAL_REPO] Nettoyage manuel du cache...');
+    await _clearCorruptedCache();
+    await initialize();
+    print('✅ [LOCAL_REPO] Cache nettoyé et réinitialisé');
+  }
+
+  /// Nettoie le cache corrompu
+  Future<void> _clearCorruptedCache() async {
+    try {
+      // Fermer et supprimer les boxes corrompues
+      if (Hive.isBoxOpen(_boxName)) {
+        await Hive.box(_boxName).close();
+      }
+      if (Hive.isBoxOpen(_counterBoxName)) {
+        await Hive.box(_counterBoxName).close();
+      }
+      if (Hive.isBoxOpen(_pendingSyncBoxName)) {
+        await Hive.box(_pendingSyncBoxName).close();
+      }
+
+      // Supprimer les fichiers de cache
+      await Hive.deleteBoxFromDisk(_boxName);
+      await Hive.deleteBoxFromDisk(_counterBoxName);
+      await Hive.deleteBoxFromDisk(_pendingSyncBoxName);
+
+      print('🧹 [LOCAL_REPO] Cache Hive nettoyé');
+    } catch (e) {
+      print('⚠️ [LOCAL_REPO] Erreur lors du nettoyage: $e');
     }
   }
 
