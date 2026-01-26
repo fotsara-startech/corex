@@ -63,13 +63,36 @@ class SuiviColisScreen extends StatelessWidget {
       color: Colors.grey[100],
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatutFilter(controller),
-            const SizedBox(width: 16),
-            _buildRetoursSwitch(controller),
-            const SizedBox(width: 16),
-            _buildDateFilter(controller),
+            // Filtres principaux
+            Row(
+              children: [
+                _buildStatutFilter(controller),
+                const SizedBox(width: 16),
+                _buildRetoursSwitch(controller),
+                const SizedBox(width: 16),
+                _buildDateFilter(controller),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Filtres rapides de date
+            Row(
+              children: [
+                _buildQuickDateFilter('Aujourd\'hui', 0, controller),
+                const SizedBox(width: 8),
+                _buildQuickDateFilter('Hier', -1, controller),
+                const SizedBox(width: 8),
+                _buildQuickDateFilter('Cette semaine', -7, controller),
+                const SizedBox(width: 8),
+                _buildQuickDateFilter('Ce mois', -30, controller),
+                const SizedBox(width: 8),
+                _buildQuickDateFilter('Cette année', -365, controller),
+                const SizedBox(width: 8),
+                _buildQuickDateFilter('Tous', null, controller),
+              ],
+            ),
           ],
         ),
       ),
@@ -162,6 +185,65 @@ class SuiviColisScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildQuickDateFilter(String label, int? daysOffset, SuiviController controller) {
+    return Obx(() {
+      final now = DateTime.now();
+      DateTime startOfPeriod;
+      DateTime endOfPeriod;
+
+      if (daysOffset == null) {
+        // Tous les filtres
+        startOfPeriod = DateTime(2020);
+        endOfPeriod = DateTime(2030);
+      } else if (daysOffset == 0) {
+        // Aujourd'hui
+        startOfPeriod = DateTime(now.year, now.month, now.day);
+        endOfPeriod = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      } else if (daysOffset == -1) {
+        // Hier
+        final yesterday = now.subtract(const Duration(days: 1));
+        startOfPeriod = DateTime(yesterday.year, yesterday.month, yesterday.day);
+        endOfPeriod = DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59);
+      } else if (daysOffset == -7) {
+        // Cette semaine
+        final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        startOfPeriod = DateTime(firstDayOfWeek.year, firstDayOfWeek.month, firstDayOfWeek.day);
+        endOfPeriod = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      } else if (daysOffset == -30) {
+        // Ce mois
+        startOfPeriod = DateTime(now.year, now.month, 1);
+        endOfPeriod = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+      } else {
+        // Cette année
+        startOfPeriod = DateTime(now.year, 1, 1);
+        endOfPeriod = DateTime(now.year, 12, 31, 23, 59, 59);
+      }
+
+      final isActive = controller.dateDebutFilter.value?.year == startOfPeriod.year &&
+          controller.dateDebutFilter.value?.month == startOfPeriod.month &&
+          controller.dateDebutFilter.value?.day == startOfPeriod.day &&
+          controller.dateFinFilter.value?.year == endOfPeriod.year &&
+          controller.dateFinFilter.value?.month == endOfPeriod.month &&
+          controller.dateFinFilter.value?.day == endOfPeriod.day;
+
+      return ElevatedButton(
+        onPressed: () {
+          controller.dateDebutFilter.value = startOfPeriod;
+          controller.dateFinFilter.value = endOfPeriod;
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isActive ? const Color(0xFF2E7D32) : Colors.white,
+          foregroundColor: isActive ? Colors.white : Colors.grey[800],
+          side: BorderSide(
+            color: isActive ? const Color(0xFF2E7D32) : Colors.grey[300]!,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        ),
+        child: Text(label),
+      );
+    });
   }
 
   Widget _buildDateButton({
@@ -267,6 +349,38 @@ class SuiviColisScreen extends StatelessWidget {
                 ],
               ),
               const Divider(height: 24),
+              // Contenu du colis
+              if (colis.contenu.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Contenu',
+                        style: TextStyle(
+                          color: Colors.blue[800],
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        colis.contenu,
+                        style: TextStyle(
+                          color: Colors.blue[900],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Row(
                 children: [
                   Expanded(

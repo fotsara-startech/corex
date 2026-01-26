@@ -17,11 +17,36 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
   final CourseController _courseController = Get.find<CourseController>();
   final _formKey = GlobalKey<FormState>();
 
+  // Variables pour gérer le mode de commission
+  late double _pourcentageCommission;
+  late double _montantFixeCommission;
+  bool _utiliserMontantFixe = false;
+
+  final _pourcentageController = TextEditingController();
+  final _montantFixeController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialiser les valeurs de commission UNE SEULE FOIS
+    final montantFinal = widget.course.montantReel ?? widget.course.montantEstime;
+    _pourcentageCommission = widget.course.commissionPourcentage;
+    _montantFixeCommission = montantFinal * (_pourcentageCommission / 100);
+    _pourcentageController.text = _pourcentageCommission.toStringAsFixed(2);
+    _montantFixeController.text = _montantFixeCommission.toStringAsFixed(0);
+  }
+
+  @override
+  void dispose() {
+    _pourcentageController.dispose();
+    _montantFixeController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
     final montantFinal = widget.course.montantReel ?? widget.course.montantEstime;
-    final commission = montantFinal * (widget.course.commissionPourcentage / 100);
 
     return Scaffold(
       appBar: AppBar(
@@ -64,7 +89,7 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Détails financiers
+              // Détails financiers et Commission modifiable
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -90,17 +115,159 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
                           Colors.blue,
                         ),
                       const Divider(),
-                      _buildFinanceRow(
-                        'Commission COREX (${widget.course.commissionPourcentage}%)',
-                        commission,
-                        CorexTheme.primaryGreen,
+                      const SizedBox(height: 16),
+
+                      // Section Commission
+                      Text(
+                        'Commission COREX',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: CorexTheme.primaryGreen,
+                            ),
                       ),
-                      const Divider(),
-                      _buildFinanceRow(
-                        'MONTANT TOTAL',
-                        montantFinal,
-                        Colors.black,
-                        isBold: true,
+                      const SizedBox(height: 12),
+
+                      // Toggle: Pourcentage vs Montant Fixe
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SegmentedButton<bool>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: false,
+                                  label: Text('Pourcentage (%)'),
+                                  icon: Icon(Icons.percent),
+                                ),
+                                ButtonSegment(
+                                  value: true,
+                                  label: Text('Montant Fixe'),
+                                  icon: Icon(Icons.attach_money),
+                                ),
+                              ],
+                              selected: {_utiliserMontantFixe},
+                              onSelectionChanged: (Set<bool> newSelection) {
+                                setState(() {
+                                  _utiliserMontantFixe = newSelection.first;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Champ: Pourcentage ou Montant
+                      if (!_utiliserMontantFixe)
+                        TextFormField(
+                          controller: _pourcentageController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Pourcentage (%)',
+                            prefixIcon: const Icon(Icons.percent),
+                            border: const OutlineInputBorder(),
+                            helperText: 'Taux de commission à appliquer',
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Veuillez entrer un pourcentage';
+                            }
+                            final pourcentage = double.tryParse(value);
+                            if (pourcentage == null || pourcentage < 0 || pourcentage > 100) {
+                              return 'Le pourcentage doit être entre 0 et 100';
+                            }
+                            return null;
+                          },
+                          onChanged: (value) {
+                            setState(() {
+                              if (value.isNotEmpty) {
+                                _pourcentageCommission = double.tryParse(value) ?? 0;
+                                _montantFixeCommission = montantFinal * (_pourcentageCommission / 100);
+                                _montantFixeController.text = _montantFixeCommission.toStringAsFixed(0);
+                              }
+                            });
+                          },
+                        )
+                      else
+                        TextFormField(
+                          controller: _montantFixeController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Montant Commission (FCFA)',
+                            prefixIcon: const Icon(Icons.attach_money),
+                            border: const OutlineInputBorder(),
+                            helperText: 'Montant fixe à enregistrer en caisse',
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Veuillez entrer un montant';
+                            }
+                            final montant = double.tryParse(value);
+                            if (montant == null || montant < 0) {
+                              return 'Le montant doit être positif';
+                            }
+                            return null;
+                          },
+                          onChanged: (value) {
+                            setState(() {
+                              if (value.isNotEmpty) {
+                                _montantFixeCommission = double.tryParse(value) ?? 0;
+                                // Calculer le pourcentage équivalent pour affichage
+                                if (montantFinal > 0) {
+                                  _pourcentageCommission = (_montantFixeCommission / montantFinal) * 100;
+                                }
+                              }
+                            });
+                          },
+                        ),
+                      const SizedBox(height: 16),
+
+                      // Affichage de la commission calculée
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: CorexTheme.primaryGreen.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: CorexTheme.primaryGreen),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Commission à enregistrer',
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${_montantFixeCommission.toStringAsFixed(0)} FCFA',
+                                  style: const TextStyle(
+                                    color: CorexTheme.primaryGreen,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (!_utiliserMontantFixe)
+                                  Text(
+                                    '(${_pourcentageCommission.toStringAsFixed(2)}% de ${montantFinal.toStringAsFixed(0)} FCFA)',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            Icon(
+                              Icons.check_circle,
+                              color: CorexTheme.primaryGreen,
+                              size: 40,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -118,10 +285,9 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
                       children: [
                         Text(
                           'Justificatifs',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                         const Divider(),
                         Row(
@@ -154,10 +320,7 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
                           const SizedBox(width: 8),
                           Text(
                             'Validation du Paiement',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue,
                                 ),
@@ -171,10 +334,8 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
                       ),
                       const SizedBox(height: 8),
                       _buildCheckItem('Le montant a été vérifié'),
-                      _buildCheckItem(
-                          'Les justificatifs ont été validés (si présents)'),
-                      _buildCheckItem(
-                          'Une transaction financière sera créée automatiquement'),
+                      _buildCheckItem('Les justificatifs ont été validés (si présents)'),
+                      _buildCheckItem('Une transaction financière sera créée automatiquement'),
                       _buildCheckItem('La course sera marquée comme payée'),
                     ],
                   ),
@@ -192,15 +353,12 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
                   ),
                   const SizedBox(width: 16),
                   Obx(() => ElevatedButton.icon(
-                        onPressed: _courseController.isLoading.value
-                            ? null
-                            : _enregistrerPaiement,
+                        onPressed: _courseController.isLoading.value ? null : _enregistrerPaiement,
                         icon: _courseController.isLoading.value
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.check),
                         label: const Text('Enregistrer le Paiement'),
@@ -246,8 +404,7 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
     );
   }
 
-  Widget _buildFinanceRow(String label, double montant, Color color,
-      {bool isBold = false}) {
+  Widget _buildFinanceRow(String label, double montant, Color color, {bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -295,11 +452,14 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
   Future<void> _enregistrerPaiement() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final montantFinal = widget.course.montantReel ?? widget.course.montantEstime;
     final confirm = await Get.dialog<bool>(
       AlertDialog(
         title: const Text('Confirmer le paiement'),
         content: Text(
-          'Voulez-vous enregistrer le paiement de ${(widget.course.montantReel ?? widget.course.montantEstime).toStringAsFixed(0)} FCFA ?\n\n'
+          'Montant de la course: ${montantFinal.toStringAsFixed(0)} FCFA\n'
+          'Commission à enregistrer: ${_montantFixeCommission.toStringAsFixed(0)} FCFA\n\n'
+          'Voulez-vous continuer ?\n\n'
           'Une transaction financière sera créée automatiquement.',
         ),
         actions: [
@@ -321,7 +481,10 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
 
     if (confirm == true) {
       try {
-        await _courseController.enregistrerPaiement(widget.course.id!);
+        await _courseController.enregistrerPaiement(
+          widget.course.id!,
+          montantCommission: _montantFixeCommission,
+        );
         Get.back(); // Retour à l'écran précédent
       } catch (e) {
         // Erreur déjà gérée dans le controller

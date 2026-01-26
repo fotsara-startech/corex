@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:corex_shared/controllers/transaction_controller.dart';
 import 'package:corex_shared/controllers/auth_controller.dart';
+import 'package:corex_shared/services/agence_service.dart';
 import 'package:intl/intl.dart';
 import 'recette_form_screen.dart';
 import 'depense_form_screen.dart';
@@ -17,7 +18,9 @@ class CaisseDashboardScreen extends StatefulWidget {
 class _CaisseDashboardScreenState extends State<CaisseDashboardScreen> {
   final transactionController = Get.find<TransactionController>();
   final authController = Get.find<AuthController>();
+  final agenceService = Get.find<AgenceService>();
   final currencyFormat = NumberFormat.currency(locale: 'fr_FR', symbol: 'FCFA', decimalDigits: 0);
+  final RxString nomAgence = 'Chargement...'.obs;
 
   @override
   void initState() {
@@ -25,138 +28,198 @@ class _CaisseDashboardScreenState extends State<CaisseDashboardScreen> {
     // Recharger les transactions à chaque fois qu'on arrive sur cet écran
     WidgetsBinding.instance.addPostFrameCallback((_) {
       transactionController.loadTransactions();
+      _loadAgenceName();
     });
+  }
+
+  Future<void> _loadAgenceName() async {
+    try {
+      final user = authController.currentUser.value;
+      if (user?.agenceId != null) {
+        final agence = await agenceService.getAgenceById(user!.agenceId!);
+        if (agence != null) {
+          nomAgence.value = agence.nom;
+        } else {
+          nomAgence.value = 'Agence non trouvée';
+        }
+      } else {
+        nomAgence.value = 'N/A';
+      }
+    } catch (e) {
+      nomAgence.value = 'Erreur de chargement';
+      print('⚠️ Erreur: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestion de Caisse'),
-        backgroundColor: const Color(0xFF2E7D32),
-      ),
-      body: Obx(() {
-        if (transactionController.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return Obx(() {
+      final user = authController.currentUser.value;
 
-        // Calculer les statistiques du jour
-        final today = DateTime.now();
-        final startOfDay = DateTime(today.year, today.month, today.day);
-        final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
-
-        final transactionsDuJour = transactionController.transactionsList.where((t) => t.date.isAfter(startOfDay) && t.date.isBefore(endOfDay)).toList();
-
-        final recettesDuJour = transactionsDuJour.where((t) => t.type == 'recette').fold(0.0, (sum, t) => sum + t.montant);
-
-        final depensesDuJour = transactionsDuJour.where((t) => t.type == 'depense').fold(0.0, (sum, t) => sum + t.montant);
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // En-tête avec nom de l'agence
-              Obx(() {
-                final user = authController.currentUser.value;
-                return Text(
-                  'Agence: ${user?.agenceId ?? "N/A"}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                );
-              }),
-              const SizedBox(height: 24),
-
-              // Cartes de statistiques
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      'Solde Actuel',
-                      currencyFormat.format(transactionController.soldeActuel.value),
-                      Icons.account_balance_wallet,
-                      transactionController.soldeActuel.value >= 0 ? Colors.green : Colors.red,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
-                      'Recettes du Jour',
-                      currencyFormat.format(recettesDuJour),
-                      Icons.arrow_upward,
-                      Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
-                      'Dépenses du Jour',
-                      currencyFormat.format(depensesDuJour),
-                      Icons.arrow_downward,
-                      Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // Boutons d'action
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => Get.to(() => const RecetteFormScreen()),
-                      icon: const Icon(Icons.add_circle),
-                      label: const Text('Enregistrer une Recette'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.all(20),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => Get.to(() => const DepenseFormScreen()),
-                      icon: const Icon(Icons.remove_circle),
-                      label: const Text('Enregistrer une Dépense'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.all(20),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => Get.to(() => const HistoriqueTransactionsScreen()),
-                  icon: const Icon(Icons.history),
-                  label: const Text('Voir l\'Historique et Rapprochement'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(20),
-                  ),
+      // Vérifier que l'utilisateur a le rôle autorisé
+      if (user == null || (user.role != 'admin' && user.role != 'gestionnaire')) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Accès Refusé'),
+            backgroundColor: const Color(0xFF2E7D32),
+          ),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.lock,
+                  size: 64,
+                  color: Colors.red[300],
                 ),
-              ),
-              const SizedBox(height: 32),
-
-              // Dernières transactions
-              const Text(
-                'Dernières Transactions',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _buildRecentTransactions(transactionController, currencyFormat),
-            ],
+                const SizedBox(height: 16),
+                Text(
+                  'Accès Non Autorisé',
+                  style: TextStyle(fontSize: 18, color: Colors.red[700], fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Vous n\'avez pas les permissions pour accéder à la caisse.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Get.back(),
+                  child: const Text('Retour'),
+                ),
+              ],
+            ),
           ),
         );
-      }),
-    );
+      }
+
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Gestion de Caisse'),
+          backgroundColor: const Color(0xFF2E7D32),
+        ),
+        body: Obx(() {
+          if (transactionController.isLoading.value) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // Calculer les statistiques du jour
+          final today = DateTime.now();
+          final startOfDay = DateTime(today.year, today.month, today.day);
+          final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+
+          final transactionsDuJour = transactionController.transactionsList.where((t) => t.date.isAfter(startOfDay) && t.date.isBefore(endOfDay)).toList();
+
+          final recettesDuJour = transactionsDuJour.where((t) => t.type == 'recette').fold(0.0, (sum, t) => sum + t.montant);
+
+          final depensesDuJour = transactionsDuJour.where((t) => t.type == 'depense').fold(0.0, (sum, t) => sum + t.montant);
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // En-tête avec nom de l'agence
+                Obx(() {
+                  return Text(
+                    'Agence: ${nomAgence.value}',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  );
+                }),
+                const SizedBox(height: 24),
+
+                // Cartes de statistiques
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        'Solde Actuel',
+                        currencyFormat.format(transactionController.soldeActuel.value),
+                        Icons.account_balance_wallet,
+                        transactionController.soldeActuel.value >= 0 ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Recettes du Jour',
+                        currencyFormat.format(recettesDuJour),
+                        Icons.arrow_upward,
+                        Colors.green,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Dépenses du Jour',
+                        currencyFormat.format(depensesDuJour),
+                        Icons.arrow_downward,
+                        Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+
+                // Boutons d'action
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => Get.to(() => const RecetteFormScreen()),
+                        icon: const Icon(Icons.add_circle),
+                        label: const Text('Enregistrer une Recette'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.all(20),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => Get.to(() => const DepenseFormScreen()),
+                        icon: const Icon(Icons.remove_circle),
+                        label: const Text('Enregistrer une Dépense'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.all(20),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Get.to(() => const HistoriqueTransactionsScreen()),
+                    icon: const Icon(Icons.history),
+                    label: const Text('Voir l\'Historique et Rapprochement'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Dernières transactions
+                const Text(
+                  'Dernières Transactions',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _buildRecentTransactions(transactionController, currencyFormat),
+              ],
+            ),
+          );
+        }),
+      );
+    });
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {

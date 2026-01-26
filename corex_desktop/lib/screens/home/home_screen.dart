@@ -279,14 +279,20 @@ class HomeScreen extends StatelessWidget {
                   }
                   return const SizedBox.shrink();
                 }),
-                ListTile(
-                  leading: const Icon(Icons.attach_money),
-                  title: const Text('Caisse'),
-                  onTap: () {
-                    Get.back();
-                    Get.toNamed('/caisse');
-                  },
-                ),
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role == 'gestionnaire' || user?.role == 'admin') {
+                    return ListTile(
+                      leading: const Icon(Icons.attach_money),
+                      title: const Text('Caisse'),
+                      onTap: () {
+                        Get.back();
+                        Get.toNamed('/caisse');
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
 
                 // Section Retours
                 Obx(() {
