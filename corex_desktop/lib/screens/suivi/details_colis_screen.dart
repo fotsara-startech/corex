@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:corex_shared/controllers/suivi_controller.dart';
 import 'package:corex_shared/models/colis_model.dart';
 import 'package:intl/intl.dart';
-import 'package:timeline_tile/timeline_tile.dart';
 
 class DetailsColisScreen extends StatelessWidget {
   const DetailsColisScreen({super.key});
@@ -291,56 +290,82 @@ class DetailsColisScreen extends StatelessWidget {
   }) {
     final statutColor = Color(int.parse(controller.getStatutColor(historique.statut).replaceFirst('#', '0xFF')));
 
-    return TimelineTile(
-      isFirst: isFirst,
-      isLast: isLast,
-      beforeLineStyle: LineStyle(color: statutColor.withOpacity(0.3)),
-      indicatorStyle: IndicatorStyle(
-        width: 40,
-        color: statutColor,
-        iconStyle: IconStyle(
-          iconData: Icons.check,
-          color: Colors.white,
-        ),
-      ),
-      endChild: Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Timeline indicator
+        Column(
           children: [
-            Text(
-              controller.getStatutLabel(historique.statut),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: statutColor,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              DateFormat('dd/MM/yyyy à HH:mm').format(historique.date),
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-            ),
-            if (historique.commentaire != null && historique.commentaire!.isNotEmpty) ...[
-              const SizedBox(height: 8),
+            if (!isFirst)
               Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  historique.commentaire!,
-                  style: const TextStyle(fontSize: 12),
-                ),
+                width: 2,
+                height: 20,
+                color: statutColor.withOpacity(0.3),
               ),
-            ],
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: statutColor,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 20,
+                color: statutColor.withOpacity(0.3),
+              ),
           ],
         ),
-      ),
+        const SizedBox(width: 16),
+        // Content
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  controller.getStatutLabel(historique.statut),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: statutColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat('dd/MM/yyyy à HH:mm').format(historique.date),
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+                if (historique.commentaire != null && historique.commentaire!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      historique.commentaire!,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

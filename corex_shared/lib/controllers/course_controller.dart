@@ -191,7 +191,10 @@ class CourseController extends GetxController {
   }
 
   /// Enregistre le paiement d'une course
-  Future<void> enregistrerPaiement(String courseId) async {
+  Future<void> enregistrerPaiement(
+    String courseId, {
+    double? montantCommission,
+  }) async {
     try {
       isLoading.value = true;
       final authController = Get.find<AuthController>();
@@ -206,8 +209,12 @@ class CourseController extends GetxController {
         throw Exception('Course introuvable');
       }
 
-      // Créer la transaction
-      await _courseService.createTransactionForCourse(course, user.id);
+      // Créer la transaction avec le montant de commission fourni
+      await _courseService.createTransactionForCourse(
+        course,
+        user.id,
+        montantCommission: montantCommission,
+      );
 
       // Marquer la course comme payée
       await _courseService.updateCourse(courseId, {
@@ -215,9 +222,11 @@ class CourseController extends GetxController {
         'datePaiement': DateTime.now(),
       });
 
+      final montantCourse = course.montantReel ?? course.montantEstime;
+      final commissionEnregistree = montantCommission ?? (montantCourse * 0.10);
       Get.snackbar(
         'Succès',
-        'Paiement enregistré\nMontant: ${(course.montantReel ?? course.montantEstime).toStringAsFixed(0)} FCFA',
+        'Paiement enregistré\nMontant course: ${montantCourse.toStringAsFixed(0)} FCFA\nCommission COREX: ${commissionEnregistree.toStringAsFixed(0)} FCFA',
         snackPosition: SnackPosition.BOTTOM,
       );
 
@@ -282,8 +291,6 @@ class CourseController extends GetxController {
   int get coursesAnnulees => coursesList.where((c) => c.statut == 'annulee').length;
 
   double get totalCommissions {
-    return coursesList
-        .where((c) => c.statut == 'terminee')
-        .fold(0.0, (sum, c) => sum + c.commissionMontant);
+    return coursesList.where((c) => c.statut == 'terminee').fold(0.0, (sum, c) => sum + c.commissionMontant);
   }
 }

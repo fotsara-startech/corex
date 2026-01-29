@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:corex_shared/corex_shared.dart';
-import 'package:corex_shared/models/colis_hive_adapter.dart';
-import 'package:corex_shared/repositories/local_colis_repository.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
-import 'theme/corex_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/coursier/details_livraison_screen.dart';
@@ -16,122 +12,185 @@ import 'screens/caisse/caisse_dashboard_screen.dart';
 import 'screens/retours/creer_retour_screen.dart';
 import 'screens/retours/liste_retours_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
+import 'screens/pdg/pdg_dashboard_screen.dart';
+
+// Import conditionnel pour l'initialisation desktop/web
+import 'desktop_init.dart' if (dart.library.html) 'web_init.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Configuration de la fenêtre Windows
-  await windowManager.ensureInitialized();
+  print('🚀 [COREX] Demarrage de l\'application...');
 
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1280, 720),
-    minimumSize: Size(800, 600),
-    center: true,
-    backgroundColor: Colors.transparent,
-    skipTaskbar: false,
-    titleBarStyle: TitleBarStyle.normal,
-    title: 'COREX Desktop',
-  );
-
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
-
-  // Initialiser Hive
-  print('� [HIIVE] Initialisation de Hive...');
-  await Hive.initFlutter();
-
-  // Enregistrer les adaptateurs Hive
-  Hive.registerAdapter(ColisModelAdapter());
-  Hive.registerAdapter(HistoriqueStatutAdapter());
-  print('✅ [HIVE] Hive initialisé avec succès');
-
-  // Initialiser Firebase
-  print('🔥 [FIREBASE] Initialisation de Firebase...');
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  print('✅ [FIREBASE] Firebase initialisé avec succès');
-
-  // Configurer Firestore avec persistance pour le mode offline
-  print('📦 [FIRESTORE] Configuration de Firestore...');
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true, // Activé pour le mode offline
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
-  print('✅ [FIRESTORE] Firestore configuré avec persistance offline');
-
-  // Tester la connexion Firestore
-  try {
-    print('🔍 [FIRESTORE] Test de connexion...');
-    await FirebaseFirestore.instance.collection('_test').limit(1).get();
-    print('✅ [FIRESTORE] Connexion réussie !');
-  } catch (e) {
-    print('⚠️ [FIRESTORE] Erreur de connexion: $e');
-    print('💡 [HINT] Vérifiez que Firestore est activé dans Firebase Console');
+  // Configuration de la fenetre Windows (desktop seulement)
+  if (!kIsWeb) {
+    try {
+      await initializeDesktopWindow();
+    } catch (e) {
+      print('⚠️ [DESKTOP] Erreur initialisation fenetre: $e');
+    }
   }
 
-  // Initialiser le repository local
-  print('💾 [LOCAL_REPO] Initialisation du repository local...');
-  final localRepo = LocalColisRepository();
-  await localRepo.initialize();
-  Get.put(localRepo, permanent: true);
-  print('✅ [LOCAL_REPO] Repository local initialisé');
+  // Initialisation Firebase
+  await _initializeFirebase();
 
-  // Initialiser les services GetX
-  print('⚙️ [GETX] Initialisation des services...');
-  Get.put(ConnectivityService(), permanent: true);
-  Get.put(AuthService(), permanent: true);
-  Get.put(UserService(), permanent: true);
-  Get.put(AgenceService(), permanent: true);
-  Get.put(ZoneService(), permanent: true);
-  Get.put(AgenceTransportService(), permanent: true);
-  Get.put(ColisService(), permanent: true);
-  Get.put(LivraisonService(), permanent: true);
-  Get.put(TransactionService(), permanent: true);
-  Get.put(ClientService(), permanent: true);
-  Get.put(StockageService(), permanent: true);
-  Get.put(CourseService(), permanent: true);
-  Get.put(SyncService(), permanent: true);
-  Get.put(EmailService(), permanent: true);
-  Get.put(NotificationService(), permanent: true);
-  Get.put(AlertService(), permanent: true);
-  print('✅ [GETX] Services initialisés');
+  // Initialisation Hive
+  await _initializeHive();
 
-  // Initialiser les controllers
-  print('🎮 [GETX] Initialisation des controllers...');
-  Get.put(AuthController(), permanent: true);
-  Get.put(UserController(), permanent: true);
-  Get.put(AgenceController(), permanent: true);
-  Get.put(ZoneController(), permanent: true);
-  Get.put(AgenceTransportController(), permanent: true);
-  Get.put(ColisController(), permanent: true);
-  Get.put(LivraisonController(), permanent: true);
-  Get.put(TransactionController(), permanent: true);
-  Get.put(ClientController(), permanent: true);
-  Get.put(StockageController(), permanent: true);
-  Get.put(CourseController(), permanent: true);
-  Get.put(RetourController(), permanent: true);
-  Get.put(NotificationController(), permanent: true);
-  print('✅ [GETX] Controllers initialisés');
+  // Initialisation des services GetX
+  await _initializeServices();
 
   runApp(const CorexDesktopApp());
+}
+
+/// Initialise Firebase avec gestion d'erreurs améliorée
+Future<void> _initializeFirebase() async {
+  try {
+    print('🔥 [COREX] Initialisation Firebase...');
+
+    // Vérifier si Firebase est déjà initialisé
+    if (Firebase.apps.isNotEmpty) {
+      print('✅ [COREX] Firebase déjà initialisé');
+      return;
+    }
+
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    print('✅ [COREX] Firebase initialisé avec succès');
+
+    // Attendre un peu pour que Firebase Auth soit prêt
+    await Future.delayed(const Duration(milliseconds: 500));
+  } catch (e) {
+    print('⚠️ [COREX] Erreur Firebase: $e');
+    // Ne pas bloquer l'application si Firebase échoue
+    // L'application fonctionnera en mode offline/démo
+  }
+}
+
+/// Initialise Hive pour le stockage local
+Future<void> _initializeHive() async {
+  try {
+    print('📦 [COREX] Initialisation Hive...');
+
+    // Initialiser Hive
+    if (kIsWeb) {
+      await Hive.initFlutter('corex_web');
+    } else {
+      await Hive.initFlutter();
+    }
+
+    // Enregistrer les adaptateurs avec vérification
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(ColisModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(HistoriqueStatutAdapter());
+    }
+
+    print('✅ [COREX] Hive initialisé avec succès');
+  } catch (e) {
+    print('⚠️ [COREX] Erreur Hive: $e');
+    // Ne pas bloquer l'application si Hive échoue
+  }
+}
+
+/// Initialise tous les services nécessaires pour l'application
+Future<void> _initializeServices() async {
+  print('🔧 [COREX] Initialisation des services...');
+
+  try {
+    // Attendre que Firebase soit complètement prêt
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    // Repository local (doit être initialisé en premier)
+    try {
+      final localRepo = LocalColisRepository();
+      await localRepo.initialize();
+      Get.put(localRepo, permanent: true);
+      print('✅ [COREX] Repository local initialisé');
+    } catch (e) {
+      print('⚠️ [COREX] Repository local non disponible: $e');
+    }
+
+    // Services de base (ordre important)
+    Get.put(AuthService(), permanent: true);
+    Get.put(AuthController(), permanent: true);
+
+    // Services métier - Initialisation conditionnelle
+    try {
+      Get.put(ColisService(), permanent: true);
+      Get.put(TransactionService(), permanent: true);
+      Get.put(LivraisonService(), permanent: true);
+      Get.put(CourseService(), permanent: true);
+      Get.put(UserService(), permanent: true);
+      Get.put(AgenceService(), permanent: true);
+      Get.put(ClientService(), permanent: true);
+      Get.put(ZoneService(), permanent: true);
+      Get.put(AgenceTransportService(), permanent: true);
+      Get.put(StockageService(), permanent: true);
+      Get.put(NotificationService(), permanent: true);
+    } catch (e) {
+      print('⚠️ [COREX] Certains services métier non disponibles: $e');
+    }
+
+    // Services utilitaires - Optionnels
+    try {
+      Get.put(ConnectivityService(), permanent: true);
+      Get.put(SyncService(), permanent: true);
+    } catch (e) {
+      print('⚠️ [COREX] Services utilitaires non disponibles: $e');
+    }
+
+    print('✅ [COREX] Services initialisés avec succès');
+  } catch (e) {
+    print('❌ [COREX] Erreur initialisation services: $e');
+    // Ne pas bloquer l'application, certains services peuvent être optionnels
+  }
 }
 
 class CorexDesktopApp extends StatelessWidget {
   const CorexDesktopApp({super.key});
 
+  // Theme COREX simple
+  static ThemeData get corexTheme => ThemeData(
+        useMaterial3: true,
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF2E7D32),
+          secondary: Color(0xFF212121),
+          surface: Color(0xFFFFFFFF),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF2E7D32),
+          foregroundColor: Color(0xFFFFFFFF),
+          elevation: 0,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2E7D32),
+            foregroundColor: const Color(0xFFFFFFFF),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            elevation: 0,
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       title: 'COREX Desktop',
-      theme: CorexTheme.theme,
+      theme: corexTheme,
       debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       getPages: [
         GetPage(name: '/login', page: () => const LoginScreen()),
         GetPage(name: '/home', page: () => const HomeScreen()),
+        GetPage(name: '/pdg/dashboard', page: () => const PdgDashboardScreen()),
         GetPage(
           name: '/livraison/details',
           page: () => const DetailsLivraisonScreen(),

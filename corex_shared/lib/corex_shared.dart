@@ -37,6 +37,10 @@ export 'services/course_service.dart';
 export 'services/email_service.dart';
 export 'services/notification_service.dart';
 export 'services/alert_service.dart';
+export 'services/ticket_service.dart';
+export 'services/ticket_service_fixed.dart';
+export 'services/ticket_service_simple.dart';
+export 'services/ticket_service_optimized.dart';
 
 // Controllers
 export 'controllers/auth_controller.dart';

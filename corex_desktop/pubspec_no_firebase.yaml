@@ -1,0 +1,58 @@
+name: corex_desktop
+description: "COREX Desktop - Application Windows pour agents, gestionnaires, commerciaux, coursiers"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Package partagé
+  corex_shared:
+    path: ../corex_shared
+  
+  # Firebase - TEMPORAIREMENT DÉSACTIVÉ POUR TESTS
+  # firebase_core: ^4.4.0
+  # firebase_auth: ^6.1.4
+  # cloud_firestore: ^6.1.2
+  
+  # State Management
+  get: ^4.6.6
+  
+  # UI
+  cupertino_icons: ^1.0.8
+  
+  # PDF & Printing
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  open_file: ^3.5.7
+  
+  # Email
+  mailer: ^6.1.2
+  
+  # Utilities
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  shared_preferences: ^2.3.2
+  timeline_tile: ^2.0.0
+  image_picker: ^1.1.2
+  
+  # Local Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.4
+  
+  # Desktop
+  window_manager: ^0.4.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

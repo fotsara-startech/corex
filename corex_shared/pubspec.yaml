@@ -11,30 +11,33 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # Firebase
+  # Firebase - Versions compatibles web
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
-  cloud_firestore: ^5.4.4
+  cloud_firestore: ^5.4.3
   
   # State Management
   get: ^4.6.6
   
-  # Utilities
-  uuid: ^4.5.1
+  # Utilities (versions compatibles clincflow)
+  uuid: ^4.2.1
   intl: ^0.19.0
   
-  # PDF & Printing
-  pdf: ^3.11.1
-  printing: ^5.13.2
+  # PDF & Printing (versions compatibles clincflow)
+  pdf: ^3.10.5
+  printing: ^5.12.2
   
-  # Local Storage
+  # Local Storage (remplace Firebase)
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  path_provider: ^2.1.4
+  path_provider: ^2.1.5
+  get_storage: ^2.1.1
+  shared_preferences: ^2.2.2
   
-  # Email & Notifications
+  # Email & Réseau (versions compatibles clincflow)
   mailer: ^6.1.2
   http: ^1.2.2
+  dio: ^5.4.0
 
 dev_dependencies:
   flutter_test:

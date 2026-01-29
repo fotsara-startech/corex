@@ -304,4 +304,30 @@ class ColisService extends GetxService {
       // Ne pas bloquer la création du colis si la transaction échoue
     }
   }
+
+  /// Récupère les colis par période pour le dashboard PDG
+  Future<List<ColisModel>> getColisByPeriod(DateTime debut, DateTime fin) async {
+    try {
+      final snapshot = await FirebaseService.colis
+          .where('dateCollecte', isGreaterThanOrEqualTo: Timestamp.fromDate(debut))
+          .where('dateCollecte', isLessThanOrEqualTo: Timestamp.fromDate(fin))
+          .orderBy('dateCollecte', descending: true)
+          .get();
+      return snapshot.docs.map((doc) => ColisModel.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('⚠️ [COLIS_SERVICE] Erreur récupération colis par période: $e');
+      return [];
+    }
+  }
+
+  /// Récupère les colis non payés pour le calcul des créances
+  Future<List<ColisModel>> getColisNonPayes() async {
+    try {
+      final snapshot = await FirebaseService.colis.where('isPaye', isEqualTo: false).orderBy('dateCollecte', descending: true).get();
+      return snapshot.docs.map((doc) => ColisModel.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('⚠️ [COLIS_SERVICE] Erreur récupération colis non payés: $e');
+      return [];
+    }
+  }
 }

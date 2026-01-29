@@ -17,6 +17,7 @@ import '../stockage/factures_stockage_screen.dart';
 import '../courses/courses_list_screen.dart';
 import '../courses/suivi_courses_screen.dart';
 import '../coursier/mes_courses_screen.dart';
+import '../pdg/pdg_dashboard_screen.dart';
 import '../../widgets/connection_indicator.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -55,39 +56,17 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       drawer: _buildDrawer(authController),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.dashboard,
-              color: Color(0xFF2E7D32),
-              size: 100,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Tableau de Bord COREX',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Obx(() {
-              final user = authController.currentUser.value;
-              return Text(
-                'Connecté en tant que: ${_getRoleLabel(user?.role ?? "")}',
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              );
-            }),
-            const SizedBox(height: 48),
-            const Text(
-              'Phase 1 - Gestion des Utilisateurs ✅',
-              style: TextStyle(fontSize: 14, color: Colors.green),
-            ),
-          ],
-        ),
-      ),
+      body: Obx(() {
+        final user = authController.currentUser.value;
+
+        // Si l'utilisateur est PDG ou admin, afficher le dashboard PDG
+        if (user != null && (user.role == 'pdg' || user.role == 'admin')) {
+          return const PdgDashboardScreen(isEmbedded: true);
+        }
+
+        // Sinon, afficher l'interface standard
+        return _buildStandardHomeContent(authController);
+      }),
     );
   }
 
@@ -153,6 +132,22 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                         ),
+                        // Tableau de bord PDG - Accès spécial
+                        if (user?.role == 'pdg' || user?.role == 'admin')
+                          ListTile(
+                            leading: const Icon(Icons.analytics, color: Color(0xFF6C5CE7)),
+                            title: const Text(
+                              'Tableau de Bord PDG',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF6C5CE7),
+                              ),
+                            ),
+                            onTap: () {
+                              Get.back();
+                              Get.toNamed('/pdg/dashboard');
+                            },
+                          ),
                         ListTile(
                           leading: const Icon(Icons.people),
                           title: const Text('Gestion des utilisateurs'),
@@ -402,6 +397,42 @@ class HomeScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStandardHomeContent(AuthController authController) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.dashboard,
+            color: Color(0xFF2E7D32),
+            size: 100,
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Tableau de Bord COREX',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Obx(() {
+            final user = authController.currentUser.value;
+            return Text(
+              'Connecté en tant que: ${_getRoleLabel(user?.role ?? "")}',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            );
+          }),
+          const SizedBox(height: 48),
+          const Text(
+            'Phase 1 - Gestion des Utilisateurs ✅',
+            style: TextStyle(fontSize: 14, color: Colors.green),
+          ),
         ],
       ),
     );

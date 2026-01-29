@@ -6,7 +6,7 @@ import 'package:corex_shared/models/livraison_model.dart';
 import 'package:corex_shared/models/colis_model.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+// import 'package:image_picker/image_picker.dart';
 
 class DetailsLivraisonScreen extends StatefulWidget {
   const DetailsLivraisonScreen({super.key});
@@ -539,7 +539,7 @@ class _DetailsLivraisonScreenState extends State<DetailsLivraisonScreen> {
                   ],
                   TextButton.icon(
                     onPressed: () async {
-                      await _pickPreuveImage();
+                      // await _pickPreuveImage();
                       setState(() {});
                     },
                     icon: const Icon(Icons.camera_alt),
@@ -656,7 +656,7 @@ class _DetailsLivraisonScreenState extends State<DetailsLivraisonScreen> {
                   ],
                   TextButton.icon(
                     onPressed: () async {
-                      await _pickEchecImage();
+                      // await _pickEchecImage();
                       setState(() {});
                     },
                     icon: const Icon(Icons.camera_alt),
@@ -706,27 +706,27 @@ class _DetailsLivraisonScreenState extends State<DetailsLivraisonScreen> {
     );
   }
 
-  Future<void> _pickPreuveImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+  // Future<void> _pickPreuveImage() async {
+  //   final ImagePicker picker = ImagePicker();
+  //   final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
-    if (image != null) {
-      setState(() {
-        preuveImage = File(image.path);
-      });
-    }
-  }
+  //   if (image != null) {
+  //     setState(() {
+  //       preuveImage = File(image.path);
+  //     });
+  //   }
+  // }
 
-  Future<void> _pickEchecImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+  // Future<void> _pickEchecImage() async {
+  //   final ImagePicker picker = ImagePicker();
+  //   final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
-    if (image != null) {
-      setState(() {
-        echecImage = File(image.path);
-      });
-    }
-  }
+  //   if (image != null) {
+  //     setState(() {
+  //       echecImage = File(image.path);
+  //     });
+  //   }
+  // }
 
   Color _getStatutColor(String statut) {
     switch (statut) {

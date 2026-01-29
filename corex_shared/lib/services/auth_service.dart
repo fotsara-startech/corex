@@ -13,6 +13,11 @@ class AuthService extends GetxService {
     try {
       print('🔐 [AUTH] Tentative de connexion pour: $email');
 
+      // Vérifier que Firebase Auth est disponible
+      if (_auth.app.options.projectId.isEmpty) {
+        throw Exception('Firebase Auth non initialisé correctement');
+      }
+
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,

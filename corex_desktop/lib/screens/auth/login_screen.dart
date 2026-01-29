@@ -30,9 +30,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
 
-      if (success && mounted) {
-        Get.offAllNamed('/home');
-      }
+      // La redirection est maintenant gérée automatiquement par AuthController
+      // selon le rôle de l'utilisateur
     }
   }
 

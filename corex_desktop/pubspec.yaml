@@ -15,38 +15,60 @@ dependencies:
   corex_shared:
     path: ../corex_shared
   
-  # Firebase
+  # Firebase - Versions compatibles web
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
-  cloud_firestore: ^5.4.4
+  cloud_firestore: ^5.4.3
   
   # State Management
   get: ^4.6.6
   
-  # UI
+  # UI & Fonts (basé sur clincflow)
   cupertino_icons: ^1.0.8
+  google_fonts: ^5.1.0
+  flutter_animate: ^4.5.2
+  gap: ^3.0.1
   
-  # PDF & Printing
-  pdf: ^3.11.1
-  printing: ^5.13.2
-  open_file: ^3.5.7
+  # Utilitaires (basé sur clincflow)
+  intl: ^0.19.0
+  uuid: ^4.2.1
+  shared_preferences: ^2.2.2
+  get_storage: ^2.1.1
   
-  # Email
+  # PDF & Printing (basé sur clincflow)
+  pdf: ^3.10.5
+  printing: ^5.12.2
+  path_provider: ^2.1.5
+  open_file: ^3.5.10
+  
+  # Email (gardé de COREX)
   mailer: ^6.1.2
   
-  # Utilities
-  uuid: ^4.5.1
-  intl: ^0.19.0
-  shared_preferences: ^2.3.2
-  timeline_tile: ^2.0.0
-  image_picker: ^1.1.2
+  # Réseau (basé sur clincflow)
+  http: ^1.2.2
+  dio: ^5.4.0
   
-  # Local Storage
+  # Fichiers (basé sur clincflow)
+  file_picker: ^6.1.1
+  permission_handler: ^11.2.0
+  share_plus: ^7.2.1
+  
+  # QR Codes (basé sur clincflow)
+  qr_flutter: ^4.1.0
+  qr: ^3.0.1
+  
+  # Charts (basé sur clincflow)
+  fl_chart: ^0.69.0
+  syncfusion_flutter_charts: ^27.2.5
+  
+  # Excel (basé sur clincflow)
+  excel: ^4.0.6
+  
+  # Local Storage (remplace Firebase)
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  path_provider: ^2.1.4
   
-  # Desktop
+  # Desktop (conditionnel)
   window_manager: ^0.4.2
 
 dev_dependencies:

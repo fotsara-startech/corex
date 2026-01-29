@@ -138,15 +138,23 @@ class CourseService {
     }
   }
 
-  /// Crée une transaction pour le paiement d'une course
-  Future<void> createTransactionForCourse(CourseModel course, String userId) async {
+  /// Crée une transaction pour le paiement d'une course (Commission COREX flexible)
+  Future<void> createTransactionForCourse(
+    CourseModel course,
+    String userId, {
+    double? montantCommission,
+  }) async {
     try {
+      // Montant de commission: soit fourni en paramètre, soit calculé à 10%
+      final montantCourse = course.montantReel ?? course.montantEstime;
+      final commissionCorex = montantCommission ?? (montantCourse * 0.10);
+
       final transaction = TransactionModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         type: 'recette',
-        categorieRecette: 'courses',
-        montant: course.montantReel ?? course.montantEstime,
-        description: 'Paiement course - ${course.tache}',
+        categorieRecette: 'commission_courses',
+        montant: commissionCorex,
+        description: 'Commission COREX - Course ${course.tache}',
         reference: 'COURSE-${course.id}',
         agenceId: course.agenceId,
         userId: userId,
@@ -154,7 +162,7 @@ class CourseService {
       );
 
       await _firestore.collection('transactions').add(transaction.toFirestore());
-      print('✅ [COURSE_SERVICE] Transaction créée pour course: ${course.id}');
+      print('✅ [COURSE_SERVICE] Commission COREX créée pour course: ${course.id} (${commissionCorex.toStringAsFixed(0)} FCFA)');
     } catch (e) {
       print('❌ [COURSE_SERVICE] Erreur création transaction: $e');
       rethrow;

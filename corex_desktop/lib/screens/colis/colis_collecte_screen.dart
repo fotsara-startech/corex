@@ -128,6 +128,17 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
       }
 
       // Générer le numéro de suivi local pour garantir la création
+      if (!Get.isRegistered<LocalColisRepository>()) {
+        Get.snackbar(
+          'Erreur',
+          'Service de stockage local non disponible',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
       final localRepo = Get.find<LocalColisRepository>();
       final numeroSuivi = localRepo.generateLocalNumeroSuivi();
       print('📦 [COLLECTE] Numéro de suivi local généré: $numeroSuivi');
@@ -189,30 +200,8 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
       final colisController = Get.find<ColisController>();
       await colisController.createColis(colis);
 
-      // Créer une transaction financière si le colis est payé
-      if (_isPaye) {
-        print('💰 [COLLECTE] Création de la transaction financière');
-        final transactionService = Get.find<TransactionService>();
-        final transaction = TransactionModel(
-          id: const Uuid().v4(),
-          agenceId: user.agenceId!,
-          type: 'recette',
-          montant: double.parse(_tarifController.text),
-          date: DateTime.now(),
-          categorieRecette: 'expedition',
-          description: 'Paiement colis $numeroSuivi - ${_destinataireNomController.text.trim()}',
-          reference: numeroSuivi,
-          userId: user.id,
-        );
-
-        try {
-          await transactionService.createTransaction(transaction);
-          print('✅ [COLLECTE] Transaction créée avec succès');
-        } catch (e) {
-          print('❌ [COLLECTE] Erreur création transaction: $e');
-          // On continue même si la transaction échoue
-        }
-      }
+      // Note: La transaction financière sera créée lors de l'enregistrement du colis
+      // et non plus lors de la collecte
 
       if (mounted) {
         setState(() => _isLoading = false);

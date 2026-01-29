@@ -229,6 +229,21 @@ class LivraisonController extends GetxController {
         'Colis livré avec succès',
       );
 
+      // Créer une transaction pour la commission COREX
+      final livraison = await _livraisonService.getLivraisonById(livraisonId);
+      if (livraison != null) {
+        final colis = await _colisService.getColisById(colisId);
+        if (colis != null) {
+          // Créer la transaction de commission COREX automatiquement
+          await _livraisonService.createCommissionCorexTransaction(
+            livraison,
+            colis,
+            user.id,
+          );
+          print('💰 [LIVRAISON_CONTROLLER] Transaction de commission COREX créée pour la livraison du colis ${colis.numeroSuivi}');
+        }
+      }
+
       // Créer une transaction si paiement collecté
       if (paiementCollecte && montantCollecte != null) {
         final livraison = await _livraisonService.getLivraisonById(livraisonId);

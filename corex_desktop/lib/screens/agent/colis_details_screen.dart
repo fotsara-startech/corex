@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:corex_shared/controllers/colis_controller.dart';
 import 'package:corex_shared/models/colis_model.dart';
+import 'package:corex_shared/models/agence_model.dart';
+import 'package:corex_shared/models/transaction_model.dart';
+import 'package:corex_shared/services/agence_service.dart';
+import 'package:corex_shared/services/transaction_service.dart';
+import 'package:uuid/uuid.dart';
 import '../../theme/corex_theme.dart';
 import 'package:corex_shared/services/colis_service.dart';
 import 'package:corex_shared/controllers/auth_controller.dart';
 import 'package:intl/intl.dart';
-import '../../services/pdf_service.dart';
+import 'package:corex_shared/services/ticket_service_optimized.dart';
 
 class ColisDetailsScreen extends StatefulWidget {
   final ColisModel colis;
@@ -19,7 +24,6 @@ class ColisDetailsScreen extends StatefulWidget {
 
 class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
   final _isProcessing = false.obs;
-  final _pdfService = PdfService();
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +247,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
                     ),
                   )
                 : const Icon(Icons.app_registration),
-            label: Text(_isProcessing.value ? 'ENREGISTREMENT...' : 'ENREGISTRER ET GÉNÉRER LES DOCUMENTS'),
+            label: Text(_isProcessing.value ? 'ENREGISTREMENT...' : 'ENREGISTRER ET IMPRIMER LE REÇU'),
             style: ElevatedButton.styleFrom(
               backgroundColor: CorexTheme.primaryGreen,
               foregroundColor: Colors.white,
@@ -303,18 +307,45 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
         'numeroSuivi': numeroSuivi,
       });
 
-      // 4. Recharger les données
+      // 4. Créer la transaction financière si le colis est payé
+      if (widget.colis.isPaye) {
+        print('💰 [ENREGISTREMENT] Création de la transaction financière');
+        final transactionService = Get.find<TransactionService>();
+        final user = authController.currentUser.value!;
+
+        final transaction = TransactionModel(
+          id: const Uuid().v4(),
+          agenceId: user.agenceId!,
+          type: 'recette',
+          montant: widget.colis.montantTarif,
+          date: DateTime.now(),
+          categorieRecette: 'expedition',
+          description: 'Enregistrement colis $numeroSuivi - ${widget.colis.destinataireNom}',
+          reference: numeroSuivi,
+          userId: user.id,
+        );
+
+        try {
+          await transactionService.createTransaction(transaction);
+          print('✅ [ENREGISTREMENT] Transaction créée avec succès');
+        } catch (e) {
+          print('❌ [ENREGISTREMENT] Erreur création transaction: $e');
+          // On continue même si la transaction échoue
+        }
+      }
+
+      // 5. Recharger les données
       await colisController.loadColis();
 
-      // 5. Récupérer le colis mis à jour
+      // 6. Récupérer le colis mis à jour
       final colisUpdated = await colisService.getColisById(widget.colis.id);
 
       if (colisUpdated != null) {
-        // 6. Générer les documents PDF
-        await _genererDocuments(colisUpdated);
+        // 7. Proposer l'impression du ticket
+        await _proposerImpressionTicket(colisUpdated);
       }
 
-      // 7. Afficher le message de succès
+      // 8. Afficher le message de succès
       Get.snackbar(
         'Succès',
         'Colis enregistré avec succès\nNuméro de suivi: $numeroSuivi',
@@ -323,7 +354,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
         duration: const Duration(seconds: 5),
       );
 
-      // 8. Retourner à l'écran précédent
+      // 9. Retourner à l'écran précédent
       Get.back();
     } catch (e) {
       Get.snackbar(
@@ -337,23 +368,137 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
     }
   }
 
-  Future<void> _genererDocuments(ColisModel colis) async {
-    try {
-      // Générer le reçu de collecte
-      await _pdfService.generateRecuCollecte(colis);
+  Future<void> _proposerImpressionTicket(ColisModel colis) async {
+    // Afficher une boîte de dialogue pour proposer l'impression
+    final result = await Get.dialog<String>(
+      AlertDialog(
+        title: const Text('Impression du reçu'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.receipt_long,
+              size: 64,
+              color: CorexTheme.primaryGreen,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Comment souhaitez-vous obtenir le reçu du colis ?',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'N° ${colis.numeroSuivi}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: CorexTheme.primaryGreen,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: 'skip'),
+            child: const Text('Plus tard'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Get.back(result: 'download'),
+            icon: const Icon(Icons.download),
+            label: const Text('Télécharger'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Get.back(result: 'print'),
+            icon: const Icon(Icons.print),
+            label: const Text('Imprimer'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: CorexTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
 
-      // Générer le bordereau d'expédition
-      await _pdfService.generateBordereauExpedition(colis);
+    if (result == 'print') {
+      try {
+        // Récupérer les informations de l'agence actuelle
+        final authController = Get.find<AuthController>();
+        final agenceId = authController.currentUser.value?.agenceId;
 
-      Get.snackbar(
-        'Documents générés',
-        'Les documents PDF ont été générés avec succès',
-        backgroundColor: CorexTheme.primaryGreen,
-        colorText: Colors.white,
-      );
-    } catch (e) {
-      print('Erreur génération PDF: $e');
-      // Ne pas bloquer l'enregistrement si la génération PDF échoue
+        AgenceModel? agence;
+        if (agenceId != null) {
+          try {
+            final agenceService = Get.find<AgenceService>();
+            agence = await agenceService.getAgenceById(agenceId);
+          } catch (e) {
+            print('⚠️ [TICKET] Impossible de récupérer l\'agence: $e');
+          }
+        }
+
+        // Générer et imprimer le ticket optimisé
+        await TicketServiceOptimized.generateAndPrintTicket(
+          colis: colis,
+          agence: agence,
+        );
+
+        Get.snackbar(
+          'Ticket généré',
+          'Ticket téléchargé et envoyé à l\'impression',
+          backgroundColor: CorexTheme.primaryGreen,
+          colorText: Colors.white,
+          icon: const Icon(Icons.print, color: Colors.white),
+        );
+      } catch (e) {
+        Get.snackbar(
+          'Erreur génération ticket',
+          'Erreur: $e',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          icon: const Icon(Icons.error, color: Colors.white),
+        );
+      }
+    } else if (result == 'download') {
+      try {
+        // Récupérer les informations de l'agence actuelle
+        final authController = Get.find<AuthController>();
+        final agenceId = authController.currentUser.value?.agenceId;
+
+        AgenceModel? agence;
+        if (agenceId != null) {
+          try {
+            final agenceService = Get.find<AgenceService>();
+            agence = await agenceService.getAgenceById(agenceId);
+          } catch (e) {
+            print('⚠️ [TICKET] Impossible de récupérer l\'agence: $e');
+          }
+        }
+
+        // Télécharger uniquement le ticket
+        await TicketServiceOptimized.downloadTicketOnly(
+          colis: colis,
+          agence: agence,
+        );
+
+        Get.snackbar(
+          'Téléchargement lancé',
+          'Le reçu a été téléchargé',
+          backgroundColor: Colors.blue,
+          colorText: Colors.white,
+          icon: const Icon(Icons.download, color: Colors.white),
+        );
+      } catch (e) {
+        Get.snackbar(
+          'Erreur de téléchargement',
+          'Impossible de télécharger le reçu: $e',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          icon: const Icon(Icons.error, color: Colors.white),
+        );
+      }
     }
   }
 }

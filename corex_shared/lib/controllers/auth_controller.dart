@@ -29,6 +29,10 @@ class AuthController extends GetxController {
       final user = await _authService.signIn(email, password);
       currentUser.value = user;
       isAuthenticated.value = true;
+
+      // Redirection automatique selon le rôle
+      _redirectAfterLogin(user);
+
       return true;
     } catch (e) {
       Get.snackbar(
@@ -42,6 +46,17 @@ class AuthController extends GetxController {
     }
   }
 
+  /// Redirige l'utilisateur vers la page appropriée selon son rôle
+  void _redirectAfterLogin(UserModel user) {
+    print('🔄 [AUTH] Redirection pour utilisateur: ${user.nom} (${user.email})');
+    print('🔄 [AUTH] Rôle détecté: ${user.role}');
+
+    // Tous les utilisateurs vont vers /home
+    // Le HomeScreen affichera le contenu approprié selon le rôle
+    print('🎯 [AUTH] Redirection vers home screen (contenu conditionnel)');
+    Get.offAllNamed('/home');
+  }
+
   Future<void> signOut() async {
     await _authService.signOut();
     currentUser.value = null;
@@ -53,6 +68,7 @@ class AuthController extends GetxController {
   }
 
   bool get isAdmin => currentUser.value?.role == 'admin';
+  bool get isPdg => currentUser.value?.role == 'pdg';
   bool get isGestionnaire => currentUser.value?.role == 'gestionnaire';
   bool get isCommercial => currentUser.value?.role == 'commercial';
   bool get isCoursier => currentUser.value?.role == 'coursier';

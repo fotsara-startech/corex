@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/livraison_model.dart';
 import '../models/transaction_model.dart';
 import '../models/colis_model.dart';
@@ -110,6 +111,37 @@ class LivraisonService extends GetxService {
     return FirebaseService.livraisons.where('coursierId', isEqualTo: coursierId).snapshots().map((snapshot) => snapshot.docs.map((doc) => LivraisonModel.fromFirestore(doc)).toList());
   }
 
+  /// Crée automatiquement une transaction de commission COREX lors de la validation de la livraison
+  Future<void> createCommissionCorexTransaction(LivraisonModel livraison, ColisModel colis, String userId) async {
+    try {
+      // Commission COREX = 10% du montant du tarif
+      final tauxCommission = 0.10;
+      final montantCommission = colis.montantTarif * tauxCommission;
+
+      final transaction = TransactionModel(
+        id: const Uuid().v4(),
+        agenceId: livraison.agenceId,
+        type: 'recette',
+        montant: montantCommission,
+        date: DateTime.now(),
+        categorieRecette: 'commission_livraison',
+        description: 'Commission COREX - Livraison colis ${colis.numeroSuivi}',
+        reference: colis.numeroSuivi,
+        userId: userId,
+      );
+
+      // Utiliser le service directement pour ne pas afficher de snackbar
+      if (Get.isRegistered<TransactionService>()) {
+        final transactionService = Get.find<TransactionService>();
+        await transactionService.createTransaction(transaction);
+        print('💰 [LIVRAISON_SERVICE] Commission COREX créée pour la livraison du colis ${colis.numeroSuivi}: $montantCommission FCFA');
+      }
+    } catch (e) {
+      print('⚠️ [LIVRAISON_SERVICE] Erreur création commission COREX: $e');
+      // Ne pas bloquer la confirmation de livraison si la transaction échoue
+    }
+  }
+
   /// Crée automatiquement une transaction lors de la collecte du paiement à la livraison
   Future<void> createTransactionForLivraison(LivraisonModel livraison, String colisNumero, String userId) async {
     if (!livraison.paiementALaLivraison || !livraison.paiementCollecte || livraison.montantACollecte == null) {
@@ -145,5 +177,20 @@ class LivraisonService extends GetxService {
   Future<List<LivraisonModel>> getAllLivraisons() async {
     final snapshot = await FirebaseService.livraisons.get();
     return snapshot.docs.map((doc) => LivraisonModel.fromFirestore(doc)).toList();
+  }
+
+  /// Récupère les livraisons par période pour le dashboard PDG
+  Future<List<LivraisonModel>> getLivraisonsByPeriod(DateTime debut, DateTime fin) async {
+    try {
+      final snapshot = await FirebaseService.livraisons
+          .where('dateCreation', isGreaterThanOrEqualTo: Timestamp.fromDate(debut))
+          .where('dateCreation', isLessThanOrEqualTo: Timestamp.fromDate(fin))
+          .orderBy('dateCreation', descending: true)
+          .get();
+      return snapshot.docs.map((doc) => LivraisonModel.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('⚠️ [LIVRAISON_SERVICE] Erreur récupération livraisons par période: $e');
+      return [];
+    }
   }
 }
