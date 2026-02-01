@@ -55,7 +55,8 @@ class CourseController extends GetxController {
     required String lieu,
     required String tache,
     required double montantEstime,
-    double commissionPourcentage = 10.0,
+    double? commissionFixe, // Commission fixe en FCFA
+    double? commissionPourcentage, // Garde pour compatibilité
   }) async {
     try {
       isLoading.value = true;
@@ -66,6 +67,22 @@ class CourseController extends GetxController {
         throw Exception('Utilisateur non connecté ou sans agence');
       }
 
+      // Calculer la commission
+      double finalCommissionMontant;
+      double finalCommissionPourcentage;
+
+      if (commissionFixe != null) {
+        // Utiliser la commission fixe
+        finalCommissionMontant = commissionFixe;
+        // Calculer le pourcentage équivalent pour la compatibilité
+        finalCommissionPourcentage = montantEstime > 0 ? (commissionFixe / montantEstime) * 100 : 0;
+      } else {
+        // Utiliser le pourcentage (mode legacy)
+        final pourcentage = commissionPourcentage ?? 10.0;
+        finalCommissionPourcentage = pourcentage;
+        finalCommissionMontant = montantEstime * (pourcentage / 100);
+      }
+
       final course = CourseModel(
         clientId: clientId,
         clientNom: clientNom,
@@ -74,7 +91,8 @@ class CourseController extends GetxController {
         lieu: lieu,
         tache: tache,
         montantEstime: montantEstime,
-        commissionPourcentage: commissionPourcentage,
+        commissionPourcentage: finalCommissionPourcentage,
+        commissionMontant: finalCommissionMontant,
         agenceId: user.agenceId!,
         createdBy: user.id,
       );

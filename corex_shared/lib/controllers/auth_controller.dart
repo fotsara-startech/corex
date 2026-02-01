@@ -19,7 +19,76 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _checkAuthState();
+    // Vérifier silencieusement s'il y a une session stockée
+    _checkStoredSession();
+  }
+
+  /// Vérifie silencieusement s'il y a une session stockée sans navigation
+  Future<void> _checkStoredSession() async {
+    try {
+      // 1. Vérifier si Firebase Auth a un utilisateur connecté
+      final firebaseUser = _authService.currentFirebaseUser;
+
+      if (firebaseUser != null) {
+        print('✅ [AUTH] Utilisateur Firebase trouvé: ${firebaseUser.email}');
+
+        // 2. Essayer de récupérer les données utilisateur depuis le stockage local
+        final userData = _storage.read(_userKey);
+        final wasAuthenticated = _storage.read(_isAuthenticatedKey) ?? false;
+
+        if (userData != null && wasAuthenticated) {
+          print('📱 [AUTH] Données utilisateur trouvées dans le cache local');
+          try {
+            final user = UserModel.fromJson(Map<String, dynamic>.from(userData));
+
+            // 3. Restaurer l'état d'authentification SANS navigation
+            currentUser.value = user;
+            isAuthenticated.value = true;
+
+            print('🎉 [AUTH] Session restaurée pour ${user.nomComplet} (sans navigation automatique)');
+
+            // 4. Vérifier que l'utilisateur est toujours actif en arrière-plan
+            _verifyUserInBackground(user);
+            return;
+          } catch (e) {
+            print('❌ [AUTH] Erreur lors de la restauration des données: $e');
+            await _clearStoredAuth();
+          }
+        }
+
+        // 5. Si pas de données locales, essayer de récupérer depuis Firestore
+        try {
+          print('🔄 [AUTH] Récupération des données depuis Firestore...');
+          if (Get.isRegistered<UserService>()) {
+            final userService = Get.find<UserService>();
+            final user = await userService.getUserById(firebaseUser.uid);
+
+            if (user != null && user.isActive) {
+              currentUser.value = user;
+              isAuthenticated.value = true;
+
+              // Sauvegarder dans le cache local
+              await _saveAuthState(user);
+
+              print('✅ [AUTH] Utilisateur récupéré depuis Firestore: ${user.nomComplet} (sans navigation automatique)');
+              return;
+            }
+          }
+        } catch (e) {
+          print('⚠️ [AUTH] Erreur récupération Firestore: $e');
+        }
+      }
+
+      print('ℹ️ [AUTH] Aucune session valide trouvée - utilisateur doit se connecter');
+    } catch (e) {
+      print('❌ [AUTH] Erreur lors de la vérification silencieuse: $e');
+    }
+  }
+
+  /// Méthode publique pour vérifier l'état d'authentification avec navigation
+  /// À appeler depuis LoginScreen après que l'interface soit prête
+  Future<void> checkAuthState() async {
+    await _checkAuthState();
   }
 
   Future<void> _checkAuthState() async {

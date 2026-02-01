@@ -17,6 +17,23 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    // Vérifier si l'utilisateur est déjà connecté après que l'interface soit prête
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkIfAlreadyAuthenticated();
+    });
+  }
+
+  void _checkIfAlreadyAuthenticated() {
+    // Si l'utilisateur est déjà authentifié, rediriger vers l'accueil
+    if (_authController.isAuthenticated.value && _authController.currentUser.value != null) {
+      print('🔄 [LOGIN] Utilisateur déjà connecté, redirection vers /home');
+      Get.offAllNamed('/home');
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -25,13 +42,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      final success = await _authController.signIn(
+      await _authController.signIn(
         _emailController.text.trim(),
         _passwordController.text,
       );
-
       // La redirection est maintenant gérée automatiquement par AuthController
-      // selon le rôle de l'utilisateur
     }
   }
 

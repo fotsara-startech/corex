@@ -368,7 +368,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.caAujourdhui.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Chiffre d\'affaires du jour',
                       icon: Icons.today,
-                      color: const Color.fromARGB(255, 6, 246, 14),
+                      color: const Color(0xFF1B5E20), // Vert très foncé
                       trend: controller.croissanceCA.value,
                     ),
                   ),
@@ -379,7 +379,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.caMois.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Chiffre d\'affaires du mois',
                       icon: Icons.calendar_month,
-                      color: const Color.fromARGB(255, 5, 245, 17),
+                      color: const Color(0xFF0D47A1), // Bleu foncé
                       trend: controller.croissanceCA.value,
                     ),
                   ),
@@ -394,7 +394,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.margeNette.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Bénéfice après charges',
                       icon: Icons.trending_up,
-                      color: const Color(0xFF4CAF50),
+                      color: const Color(0xFF004D40), // Teal foncé
                       trend: (controller.margeNette.value / controller.caTotal.value) * 100,
                     ),
                   ),
@@ -405,7 +405,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.creances.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Montant à recouvrer',
                       icon: Icons.account_balance_wallet,
-                      color: const Color(0xFFE17055),
+                      color: const Color(0xFFB71C1C), // Rouge foncé
                       trend: -(controller.creances.value / controller.caTotal.value) * 100,
                     ),
                   ),
@@ -425,7 +425,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.caAujourdhui.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Chiffre d\'affaires du jour',
                       icon: Icons.today,
-                      color: const Color(0xFF4CAF50),
+                      color: const Color(0xFF1B5E20), // Vert très foncé
                       trend: controller.croissanceCA.value,
                     ),
                   ),
@@ -436,7 +436,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.caMois.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Chiffre d\'affaires du mois',
                       icon: Icons.calendar_month,
-                      color: const Color(0xFF2E7D32),
+                      color: const Color(0xFF0D47A1), // Bleu foncé
                       trend: controller.croissanceCA.value,
                     ),
                   ),
@@ -447,7 +447,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.margeNette.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Bénéfice après charges',
                       icon: Icons.trending_up,
-                      color: const Color(0xFF4CAF50),
+                      color: const Color(0xFF004D40), // Teal foncé
                       trend: (controller.margeNette.value / controller.caTotal.value) * 100,
                     ),
                   ),
@@ -462,7 +462,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.creances.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Montant à recouvrer',
                       icon: Icons.account_balance_wallet,
-                      color: const Color(0xFFE17055),
+                      color: const Color(0xFFB71C1C), // Rouge foncé
                       trend: -(controller.creances.value / controller.caTotal.value) * 100,
                     ),
                   ),
@@ -482,7 +482,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   value: '${controller.caAujourdhui.value.toStringAsFixed(0)} FCFA',
                   subtitle: 'Chiffre d\'affaires du jour',
                   icon: Icons.today,
-                  color: const Color(0xFF4CAF50),
+                  color: const Color(0xFF1B5E20), // Vert très foncé
                   trend: controller.croissanceCA.value,
                 ),
               ),
@@ -493,7 +493,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   value: '${controller.caMois.value.toStringAsFixed(0)} FCFA',
                   subtitle: 'Chiffre d\'affaires du mois',
                   icon: Icons.calendar_month,
-                  color: const Color(0xFF2E7D32),
+                  color: const Color(0xFF0D47A1), // Bleu foncé
                   trend: controller.croissanceCA.value,
                 ),
               ),
@@ -504,7 +504,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   value: '${controller.margeNette.value.toStringAsFixed(0)} FCFA',
                   subtitle: 'Bénéfice après charges',
                   icon: Icons.trending_up,
-                  color: const Color(0xFF4CAF50),
+                  color: const Color(0xFF004D40), // Teal foncé
                   trend: (controller.margeNette.value / controller.caTotal.value) * 100,
                 ),
               ),
@@ -515,7 +515,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   value: '${controller.creances.value.toStringAsFixed(0)} FCFA',
                   subtitle: 'Montant à recouvrer',
                   icon: Icons.account_balance_wallet,
-                  color: const Color(0xFFE17055),
+                  color: const Color(0xFFB71C1C), // Rouge foncé
                   trend: -(controller.creances.value / controller.caTotal.value) * 100,
                 ),
               ),
@@ -537,7 +537,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.colisAujourdhui.value}',
                       subtitle: 'Colis traités aujourd\'hui',
                       icon: Icons.local_shipping,
-                      color: const Color(0xFF66BB6A),
+                      color: const Color(0xFF4A148C), // Violet foncé
                       trend: controller.croissanceVolume.value,
                     ),
                   ),
@@ -548,7 +548,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.tauxLivraison.value.toStringAsFixed(1)}%',
                       subtitle: 'Livraisons réussies',
                       icon: Icons.check_circle,
-                      color: controller.tauxLivraison.value >= 90 ? const Color(0xFF4CAF50) : const Color(0xFFE17055),
+                      color: controller.tauxLivraison.value >= 90 ? const Color(0xFF1B5E20) : const Color(0xFFB71C1C),
                       trend: controller.tauxLivraison.value - 90,
                     ),
                   ),
@@ -563,7 +563,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.delaiMoyen.value.toStringAsFixed(1)}h',
                       subtitle: 'Temps de livraison',
                       icon: Icons.schedule,
-                      color: const Color(0xFFFDAB3D),
+                      color: const Color(0xFFE65100), // Orange foncé
                       trend: -(controller.delaiMoyen.value - 24),
                     ),
                   ),
@@ -574,7 +574,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.clientsActifs.value}',
                       subtitle: 'Clients ayant commandé',
                       icon: Icons.people,
-                      color: const Color(0xFF81C784),
+                      color: const Color(0xFF1A237E), // Indigo foncé
                       trend: 0,
                     ),
                   ),
@@ -592,7 +592,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   value: '${controller.colisAujourdhui.value}',
                   subtitle: 'Colis traités aujourd\'hui',
                   icon: Icons.local_shipping,
-                  color: const Color(0xFF66BB6A),
+                  color: const Color(0xFF4A148C), // Violet foncé
                   trend: controller.croissanceVolume.value,
                 ),
               ),
@@ -603,7 +603,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   value: '${controller.tauxLivraison.value.toStringAsFixed(1)}%',
                   subtitle: 'Livraisons réussies',
                   icon: Icons.check_circle,
-                  color: controller.tauxLivraison.value >= 90 ? const Color(0xFF4CAF50) : const Color(0xFFE17055),
+                  color: controller.tauxLivraison.value >= 90 ? const Color(0xFF1B5E20) : const Color(0xFFB71C1C),
                   trend: controller.tauxLivraison.value - 90,
                 ),
               ),
@@ -614,7 +614,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   value: '${controller.delaiMoyen.value.toStringAsFixed(1)}h',
                   subtitle: 'Temps de livraison',
                   icon: Icons.schedule,
-                  color: const Color(0xFFFDAB3D),
+                  color: const Color(0xFFE65100), // Orange foncé
                   trend: -(controller.delaiMoyen.value - 24),
                 ),
               ),
@@ -625,7 +625,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   value: '${controller.clientsActifs.value}',
                   subtitle: 'Clients ayant commandé',
                   icon: Icons.people,
-                  color: const Color(0xFF81C784),
+                  color: const Color(0xFF1A237E), // Indigo foncé
                   trend: 0,
                 ),
               ),
@@ -655,7 +655,7 @@ class PdgDashboardScreen extends StatelessWidget {
               EvolutionChart(
                 title: 'Évolution du Chiffre d\'Affaires',
                 data: controller.evolutionCA,
-                color: const Color(0xFF2E7D32),
+                color: const Color(0xFF1B5E20), // Vert très foncé
                 valueKey: 'ca',
                 labelKey: 'label',
               ),
@@ -663,7 +663,7 @@ class PdgDashboardScreen extends StatelessWidget {
               EvolutionChart(
                 title: 'Évolution du Volume',
                 data: controller.evolutionVolume,
-                color: const Color(0xFF4CAF50),
+                color: const Color(0xFF0D47A1), // Bleu foncé
                 valueKey: 'volume',
                 labelKey: 'label',
               ),
@@ -685,7 +685,7 @@ class PdgDashboardScreen extends StatelessWidget {
                     child: EvolutionChart(
                       title: 'Évolution du Chiffre d\'Affaires',
                       data: controller.evolutionCA,
-                      color: const Color(0xFF2E7D32),
+                      color: const Color(0xFF1B5E20), // Vert très foncé
                       valueKey: 'ca',
                       labelKey: 'label',
                     ),
@@ -695,7 +695,7 @@ class PdgDashboardScreen extends StatelessWidget {
                     child: EvolutionChart(
                       title: 'Évolution du Volume',
                       data: controller.evolutionVolume,
-                      color: const Color(0xFF4CAF50),
+                      color: const Color(0xFF0D47A1), // Bleu foncé
                       valueKey: 'volume',
                       labelKey: 'label',
                     ),
@@ -728,7 +728,7 @@ class PdgDashboardScreen extends StatelessWidget {
                 child: EvolutionChart(
                   title: 'Évolution du Chiffre d\'Affaires',
                   data: controller.evolutionCA,
-                  color: const Color(0xFF2E7D32),
+                  color: const Color(0xFF1B5E20), // Vert très foncé
                   valueKey: 'ca',
                   labelKey: 'label',
                 ),
@@ -741,7 +741,7 @@ class PdgDashboardScreen extends StatelessWidget {
                 child: EvolutionChart(
                   title: 'Évolution du Volume',
                   data: controller.evolutionVolume,
-                  color: const Color(0xFF4CAF50),
+                  color: const Color(0xFF0D47A1), // Bleu foncé
                   valueKey: 'volume',
                   labelKey: 'label',
                 ),
@@ -880,7 +880,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   valueKey: 'livraisons',
                   subtitleKey: 'tauxReussite',
                   icon: Icons.delivery_dining,
-                  color: const Color(0xFF4CAF50),
+                  color: const Color(0xFF4A148C), // Violet foncé
                 ),
               ),
               const SizedBox(width: 16),
@@ -894,7 +894,7 @@ class PdgDashboardScreen extends StatelessWidget {
                   valueKey: 'ca',
                   subtitleKey: 'volume',
                   icon: Icons.business,
-                  color: const Color(0xFF2E7D32), // Vert principal
+                  color: const Color(0xFF1B5E20), // Vert très foncé // Vert principal
                 ),
               ),
             ],

@@ -130,17 +130,29 @@ Future<void> _initializeServices() async {
     // Services métier - Initialisation conditionnelle
     try {
       Get.put(ColisService(), permanent: true);
+      Get.put(ColisController(), permanent: true);
       Get.put(TransactionService(), permanent: true);
-      Get.put(TransactionController(), permanent: true); // Ajouter le contrôleur
+      Get.put(TransactionController(), permanent: true);
       Get.put(LivraisonService(), permanent: true);
+      Get.put(LivraisonController(), permanent: true);
       Get.put(CourseService(), permanent: true);
+      Get.put(CourseController(), permanent: true);
       Get.put(UserService(), permanent: true);
+      Get.put(UserController(), permanent: true);
       Get.put(AgenceService(), permanent: true);
+      Get.put(AgenceController(), permanent: true);
       Get.put(ClientService(), permanent: true);
+      Get.put(ClientController(), permanent: true);
       Get.put(ZoneService(), permanent: true);
+      Get.put(ZoneController(), permanent: true);
       Get.put(AgenceTransportService(), permanent: true);
+      Get.put(AgenceTransportController(), permanent: true);
       Get.put(StockageService(), permanent: true);
+      Get.put(StockageController(), permanent: true);
       Get.put(NotificationService(), permanent: true);
+      Get.put(NotificationController(), permanent: true);
+      Get.put(SuiviController(), permanent: true);
+      Get.put(RetourController(), permanent: true);
     } catch (e) {
       print('⚠️ [COREX] Certains services métier non disponibles: $e');
     }
@@ -198,17 +210,38 @@ class CorexDesktopApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       getPages: [
-        GetPage(name: '/login', page: () => const LoginScreen()),
-        GetPage(name: '/home', page: () => const HomeScreen()),
-        GetPage(name: '/pdg/dashboard', page: () => const PdgDashboardScreen()),
+        GetPage(
+          name: '/login',
+          page: () => const LoginScreen(),
+        ),
+        GetPage(
+          name: '/home',
+          page: () => const HomeScreen(),
+        ),
+        GetPage(
+          name: '/pdg/dashboard',
+          page: () => const PdgDashboardScreen(),
+        ),
         GetPage(
           name: '/livraison/details',
           page: () => const DetailsLivraisonScreen(),
         ),
-        GetPage(name: '/caisse', page: () => const CaisseDashboardScreen()),
-        GetPage(name: '/retours', page: () => const ListeRetoursScreen()),
-        GetPage(name: '/retours/creer', page: () => const CreerRetourScreen()),
-        GetPage(name: '/notifications', page: () => const NotificationsScreen()),
+        GetPage(
+          name: '/caisse',
+          page: () => const CaisseDashboardScreen(),
+        ),
+        GetPage(
+          name: '/retours',
+          page: () => const ListeRetoursScreen(),
+        ),
+        GetPage(
+          name: '/retours/creer',
+          page: () => const CreerRetourScreen(),
+        ),
+        GetPage(
+          name: '/notifications',
+          page: () => const NotificationsScreen(),
+        ),
       ],
     );
   }

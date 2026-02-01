@@ -72,6 +72,37 @@ class UserModel {
     };
   }
 
+  // Méthodes pour la sérialisation JSON (stockage local)
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id'] ?? '',
+      email: json['email'] ?? '',
+      nom: json['nom'] ?? '',
+      prenom: json['prenom'] ?? '',
+      telephone: json['telephone'] ?? '',
+      role: json['role'] ?? '',
+      agenceId: json['agenceId'],
+      isActive: json['isActive'] ?? true,
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      lastLogin: json['lastLogin'] != null ? DateTime.parse(json['lastLogin']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'email': email,
+      'nom': nom,
+      'prenom': prenom,
+      'telephone': telephone,
+      'role': role,
+      'agenceId': agenceId,
+      'isActive': isActive,
+      'createdAt': createdAt.toIso8601String(),
+      'lastLogin': lastLogin?.toIso8601String(),
+    };
+  }
+
   String get nomComplet => '$prenom $nom';
 
   UserModel copyWith({

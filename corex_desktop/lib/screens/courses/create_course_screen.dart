@@ -20,7 +20,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final _tacheController = TextEditingController();
   final _instructionsController = TextEditingController();
   final _montantController = TextEditingController();
-  final _commissionController = TextEditingController(text: '10');
+  final _commissionController = TextEditingController();
 
   @override
   void initState() {
@@ -39,9 +39,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   }
 
   double get _commission {
-    final montant = double.tryParse(_montantController.text) ?? 0;
-    final pourcentage = double.tryParse(_commissionController.text) ?? 10;
-    return montant * (pourcentage / 100);
+    return double.tryParse(_commissionController.text) ?? 0;
   }
 
   Future<void> _createCourse() async {
@@ -60,7 +58,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         lieu: _lieuController.text.trim(),
         tache: _tacheController.text.trim(),
         montantEstime: double.parse(_montantController.text),
-        commissionPourcentage: double.parse(_commissionController.text),
+        commissionFixe: double.parse(_commissionController.text),
       );
 
       Get.back();
@@ -243,9 +241,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                               child: TextFormField(
                                 controller: _commissionController,
                                 decoration: const InputDecoration(
-                                  labelText: 'Commission (%)',
+                                  labelText: 'Commission fixe (FCFA)',
                                   border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.percent),
+                                  prefixIcon: Icon(Icons.attach_money),
+                                  hintText: 'Ex: 5000',
                                 ),
                                 keyboardType: TextInputType.number,
                                 onChanged: (value) => setState(() {}),
@@ -254,8 +253,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                     return 'Veuillez saisir la commission';
                                   }
                                   final commission = double.tryParse(value);
-                                  if (commission == null || commission < 0 || commission > 100) {
-                                    return 'Commission invalide (0-100)';
+                                  if (commission == null || commission < 0) {
+                                    return 'Commission invalide';
                                   }
                                   return null;
                                 },

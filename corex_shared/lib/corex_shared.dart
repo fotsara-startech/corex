@@ -59,6 +59,7 @@ export 'controllers/dashboard_controller.dart';
 export 'controllers/course_controller.dart';
 export 'controllers/retour_controller.dart';
 export 'controllers/notification_controller.dart';
+export 'controllers/pdg_dashboard_controller.dart';
 
 // Constants
 export 'constants/app_constants.dart';
