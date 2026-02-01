@@ -105,7 +105,7 @@ class TicketServiceOptimized {
       final printWindow = html.window.open(blobUrl, '_blank', 'width=400,height=600,scrollbars=no,resizable=no,toolbar=no,menubar=no');
 
       if (printWindow != null) {
-        print('✅ [TICKET] Interface d\'impression ouverte');
+        print('✅ [TICKET] Interface d\'impression ouverte - impression automatique');
 
         // Nettoyer après un délai
         Future.delayed(const Duration(seconds: 5), () {
@@ -177,18 +177,26 @@ class TicketServiceOptimized {
     </style>
     <script>
         window.onload = function() {
-            // Déclencher l'impression immédiatement
+            // Déclencher l'impression immédiatement après le chargement
             setTimeout(function() {
                 window.print();
                 // Fermer la fenêtre après impression ou annulation
                 setTimeout(function() {
                     window.close();
-                }, 1000);
+                }, 2000);
+            }, 100);
+        };
+        
+        // Fermer la fenêtre après impression
+        window.onafterprint = function() {
+            setTimeout(function() {
+                window.close();
             }, 500);
         };
         
-        window.onafterprint = function() {
-            window.close();
+        // Fermer aussi si l'utilisateur annule l'impression
+        window.onbeforeunload = function() {
+            return null;
         };
     </script>
 </head>

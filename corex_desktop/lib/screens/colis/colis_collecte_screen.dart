@@ -43,7 +43,6 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
   String? _selectedAgenceTransportId;
   final RxList<ZoneModel> _zonesList = <ZoneModel>[].obs;
   final RxList<AgenceTransportModel> _agencesTransportList = <AgenceTransportModel>[].obs;
-  bool _isPaye = false;
   bool _isLoading = false;
 
   // Note: Les clients sélectionnés sont gérés directement par les contrôleurs de texte
@@ -173,8 +172,8 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
         poids: double.parse(_poidsController.text),
         dimensions: _dimensionsController.text.trim().isEmpty ? null : _dimensionsController.text.trim(),
         montantTarif: double.parse(_tarifController.text),
-        isPaye: _isPaye,
-        datePaiement: _isPaye ? DateTime.now() : null,
+        isPaye: false, // Paiement sera géré lors de l'enregistrement
+        datePaiement: null,
         modeLivraison: _modeLivraison,
         zoneId: _selectedZoneId,
         agenceTransportId: _selectedAgenceTransportId,
@@ -200,9 +199,6 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
       final colisController = Get.find<ColisController>();
       await colisController.createColis(colis);
 
-      // Note: La transaction financière sera créée lors de l'enregistrement du colis
-      // et non plus lors de la collecte
-
       if (mounted) {
         setState(() => _isLoading = false);
         Get.back();
@@ -214,9 +210,7 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
           'Succès',
           isPendingSync
               ? 'Colis collecté en mode hors ligne.\nNuméro local: $numeroSuivi\nSera synchronisé automatiquement au retour en ligne.'
-              : _isPaye
-                  ? 'Colis collecté et paiement enregistré.\nNuméro: $numeroSuivi'
-                  : 'Colis collecté avec succès.\nNuméro: $numeroSuivi',
+              : 'Colis collecté avec succès.\nNuméro: $numeroSuivi\nPaiement à effectuer lors de l\'enregistrement.',
           snackPosition: SnackPosition.BOTTOM,
           duration: Duration(seconds: isPendingSync ? 5 : 3),
         );
@@ -365,9 +359,9 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
               ),
             ),
 
-            // Étape 4 : Tarif et paiement
+            // Étape 4 : Tarif et livraison
             Step(
-              title: const Text('Tarif et paiement'),
+              title: const Text('Tarif et livraison'),
               isActive: _currentStep >= 3,
               content: Column(
                 children: [
@@ -499,10 +493,10 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Section Paiement
+                  // Information sur le paiement
                   Card(
                     elevation: 2,
-                    color: _isPaye ? Colors.green.shade50 : Colors.grey.shade50,
+                    color: Colors.blue.shade50,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -510,55 +504,31 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                _isPaye ? Icons.check_circle : Icons.payment,
-                                color: _isPaye ? Colors.green : Colors.grey,
-                              ),
+                              const Icon(Icons.info_outline, color: Colors.blue),
                               const SizedBox(width: 8),
-                              Text(
-                                'Paiement',
+                              const Text(
+                                'Information Paiement',
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: _isPaye ? Colors.green.shade900 : Colors.grey.shade900,
+                                  color: Colors.blue,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          SwitchListTile(
-                            title: Text(
-                              _isPaye ? 'Colis payé' : 'Colis non payé',
-                              style: const TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                            subtitle: Text(
-                              _isPaye ? 'Une transaction financière sera créée automatiquement' : 'Le paiement pourra être enregistré plus tard',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            value: _isPaye,
-                            activeColor: Colors.green,
-                            onChanged: (value) {
-                              setState(() => _isPaye = value);
-                            },
+                          const Text(
+                            'Le paiement sera géré lors de l\'enregistrement du colis.',
+                            style: TextStyle(fontSize: 14),
                           ),
-                          if (_isPaye) ...[
-                            const Divider(),
-                            Row(
-                              children: [
-                                const Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Montant: ${_tarifController.text.isEmpty ? "0" : _tarifController.text} FCFA',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Montant à collecter: ${_tarifController.text.isEmpty ? "0" : _tarifController.text} FCFA',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),

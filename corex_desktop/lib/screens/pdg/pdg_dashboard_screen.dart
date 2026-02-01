@@ -364,11 +364,11 @@ class PdgDashboardScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: KpiCard(
-                      title: 'CA Aujourd\'hui',
+                      title: 'CA Aujourd\'huii',
                       value: '${controller.caAujourdhui.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Chiffre d\'affaires du jour',
                       icon: Icons.today,
-                      color: const Color(0xFF4CAF50),
+                      color: const Color.fromARGB(255, 6, 246, 14),
                       trend: controller.croissanceCA.value,
                     ),
                   ),
@@ -379,7 +379,7 @@ class PdgDashboardScreen extends StatelessWidget {
                       value: '${controller.caMois.value.toStringAsFixed(0)} FCFA',
                       subtitle: 'Chiffre d\'affaires du mois',
                       icon: Icons.calendar_month,
-                      color: const Color(0xFF2E7D32),
+                      color: const Color.fromARGB(255, 5, 245, 17),
                       trend: controller.croissanceCA.value,
                     ),
                   ),

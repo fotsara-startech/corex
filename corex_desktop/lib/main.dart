@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:corex_shared/corex_shared.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:get_storage/get_storage.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
@@ -13,6 +14,7 @@ import 'screens/retours/creer_retour_screen.dart';
 import 'screens/retours/liste_retours_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/pdg/pdg_dashboard_screen.dart';
+import 'utils/cache_cleaner.dart';
 
 // Import conditionnel pour l'initialisation desktop/web
 import 'desktop_init.dart' if (dart.library.html) 'web_init.dart';
@@ -33,6 +35,10 @@ void main() async {
 
   // Initialisation Firebase
   await _initializeFirebase();
+
+  // Initialisation GetStorage pour la persistance
+  await GetStorage.init();
+  print('✅ [COREX] GetStorage initialisé');
 
   // Initialisation Hive
   await _initializeHive();
@@ -110,6 +116,9 @@ Future<void> _initializeServices() async {
       await localRepo.initialize();
       Get.put(localRepo, permanent: true);
       print('✅ [COREX] Repository local initialisé');
+
+      // Nettoyer le cache si nécessaire
+      await CacheCleaner.cleanCacheIfNeeded();
     } catch (e) {
       print('⚠️ [COREX] Repository local non disponible: $e');
     }
@@ -122,6 +131,7 @@ Future<void> _initializeServices() async {
     try {
       Get.put(ColisService(), permanent: true);
       Get.put(TransactionService(), permanent: true);
+      Get.put(TransactionController(), permanent: true); // Ajouter le contrôleur
       Get.put(LivraisonService(), permanent: true);
       Get.put(CourseService(), permanent: true);
       Get.put(UserService(), permanent: true);

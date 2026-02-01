@@ -9,37 +9,34 @@ class KpiCard extends StatelessWidget {
   final double? trend;
 
   const KpiCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.value,
     required this.subtitle,
     required this.icon,
     required this.color,
     this.trend,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
+        // Fond plus foncé et plus contrasté
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            color.withOpacity(0.1),
-            color.withOpacity(0.05),
+            color,
+            color.withOpacity(0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 20,
+            color: color.withOpacity(0.3),
+            blurRadius: 15,
             offset: const Offset(0, 8),
           ),
         ],
@@ -54,12 +51,12 @@ class KpiCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: color,
+                  color: Colors.white,
                   size: 24,
                 ),
               ),
@@ -72,10 +69,10 @@ class KpiCard extends StatelessWidget {
           // Titre
           Text(
             title,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+            style: const TextStyle(
+              color: Colors.white,
               fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
 
@@ -97,8 +94,9 @@ class KpiCard extends StatelessWidget {
           Text(
             subtitle,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withOpacity(0.9),
               fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -116,20 +114,20 @@ class KpiCard extends StatelessWidget {
     IconData trendIcon;
 
     if (isNeutral) {
-      trendColor = Colors.grey;
+      trendColor = Colors.white70;
       trendIcon = Icons.remove;
     } else if (isPositive) {
-      trendColor = const Color(0xFF00B894);
+      trendColor = Colors.white;
       trendIcon = Icons.trending_up;
     } else {
-      trendColor = const Color(0xFFE17055);
+      trendColor = Colors.white70;
       trendIcon = Icons.trending_down;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: trendColor.withOpacity(0.2),
+        color: Colors.white.withOpacity(0.2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

@@ -16,10 +16,29 @@ class HistoriqueStatut {
   factory HistoriqueStatut.fromMap(Map<String, dynamic> map) {
     return HistoriqueStatut(
       statut: map['statut'] ?? '',
-      date: (map['date'] as Timestamp).toDate(),
+      date: _parseDateTime(map['date']) ?? DateTime.now(),
       userId: map['userId'] ?? '',
       commentaire: map['commentaire'],
     );
+  }
+
+  /// Parse une date qui peut être un Timestamp ou une String ISO8601
+  static DateTime _parseDateTime(dynamic dateValue) {
+    if (dateValue == null) return DateTime.now();
+
+    try {
+      if (dateValue is Timestamp) {
+        return dateValue.toDate();
+      } else if (dateValue is String) {
+        return DateTime.parse(dateValue);
+      } else {
+        print('⚠️ [HISTORIQUE] Type de date non supporté: ${dateValue.runtimeType}');
+        return DateTime.now();
+      }
+    } catch (e) {
+      print('⚠️ [HISTORIQUE] Erreur parsing date: $e');
+      return DateTime.now();
+    }
   }
 
   Map<String, dynamic> toMap() {
@@ -127,7 +146,7 @@ class ColisModel {
       dimensions: data['dimensions'],
       montantTarif: (data['montantTarif'] ?? 0).toDouble(),
       isPaye: data['isPaye'] ?? false,
-      datePaiement: data['datePaiement'] != null ? (data['datePaiement'] as Timestamp).toDate() : null,
+      datePaiement: _parseDateTime(data['datePaiement']),
       modeLivraison: data['modeLivraison'] ?? '',
       zoneId: data['zoneId'],
       agenceTransportId: data['agenceTransportId'],
@@ -137,15 +156,34 @@ class ColisModel {
       agenceCorexId: data['agenceCorexId'] ?? '',
       commercialId: data['commercialId'] ?? '',
       coursierId: data['coursierId'],
-      dateCollecte: (data['dateCollecte'] as Timestamp).toDate(),
-      dateEnregistrement: data['dateEnregistrement'] != null ? (data['dateEnregistrement'] as Timestamp).toDate() : null,
-      dateLivraison: data['dateLivraison'] != null ? (data['dateLivraison'] as Timestamp).toDate() : null,
+      dateCollecte: _parseDateTime(data['dateCollecte']) ?? DateTime.now(),
+      dateEnregistrement: _parseDateTime(data['dateEnregistrement']),
+      dateLivraison: _parseDateTime(data['dateLivraison']),
       historique: (data['historique'] as List<dynamic>?)?.map((h) => HistoriqueStatut.fromMap(h as Map<String, dynamic>)).toList() ?? [],
       commentaire: data['commentaire'],
       isRetour: data['isRetour'] ?? false,
       colisInitialId: data['colisInitialId'],
       retourId: data['retourId'],
     );
+  }
+
+  /// Parse une date qui peut être un Timestamp ou une String ISO8601
+  static DateTime? _parseDateTime(dynamic dateValue) {
+    if (dateValue == null) return null;
+
+    try {
+      if (dateValue is Timestamp) {
+        return dateValue.toDate();
+      } else if (dateValue is String) {
+        return DateTime.parse(dateValue);
+      } else {
+        print('⚠️ [COLIS_MODEL] Type de date non supporté: ${dateValue.runtimeType}');
+        return null;
+      }
+    } catch (e) {
+      print('⚠️ [COLIS_MODEL] Erreur parsing date: $e');
+      return null;
+    }
   }
 
   Map<String, dynamic> toFirestore() {

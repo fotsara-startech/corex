@@ -41,6 +41,7 @@ export 'services/ticket_service.dart';
 export 'services/ticket_service_fixed.dart';
 export 'services/ticket_service_simple.dart';
 export 'services/ticket_service_optimized.dart';
+export 'services/ticket_print_service.dart';
 
 // Controllers
 export 'controllers/auth_controller.dart';

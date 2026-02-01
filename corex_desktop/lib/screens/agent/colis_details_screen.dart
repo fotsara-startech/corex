@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:corex_shared/controllers/colis_controller.dart';
 import 'package:corex_shared/models/colis_model.dart';
 import 'package:corex_shared/models/agence_model.dart';
@@ -11,7 +12,7 @@ import '../../theme/corex_theme.dart';
 import 'package:corex_shared/services/colis_service.dart';
 import 'package:corex_shared/controllers/auth_controller.dart';
 import 'package:intl/intl.dart';
-import 'package:corex_shared/services/ticket_service_optimized.dart';
+import 'package:corex_shared/services/ticket_print_service.dart';
 
 class ColisDetailsScreen extends StatefulWidget {
   final ColisModel colis;
@@ -24,6 +25,14 @@ class ColisDetailsScreen extends StatefulWidget {
 
 class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
   final _isProcessing = false.obs;
+  final _isPaye = false.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialiser le statut de paiement avec la valeur actuelle du colis
+    _isPaye.value = widget.colis.isPaye;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,16 +92,8 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Informations financières
-            _buildSectionCard(
-              'Informations Financières',
-              Icons.payments,
-              [
-                _buildInfoRow('Tarif', '${widget.colis.montantTarif} FCFA', bold: true),
-                _buildInfoRow('Statut paiement', widget.colis.isPaye ? 'Payé' : 'Non payé'),
-                if (widget.colis.datePaiement != null) _buildInfoRow('Date paiement', dateFormat.format(widget.colis.datePaiement!)),
-              ],
-            ),
+            // Informations financières avec option de paiement
+            _buildPaymentSectionCard(),
             const SizedBox(height: 16),
 
             // Dates importantes
@@ -230,6 +231,115 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
     );
   }
 
+  Widget _buildPaymentSectionCard() {
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+
+    return Obx(() => Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.payments, color: CorexTheme.primaryGreen),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Informations Financières',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+
+                _buildInfoRow('Tarif', '${widget.colis.montantTarif} FCFA', bold: true),
+
+                // Section paiement interactive pour les colis non payés
+                if (widget.colis.statut == 'collecte') ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _isPaye.value ? Colors.green.shade50 : Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _isPaye.value ? Colors.green : Colors.orange,
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              _isPaye.value ? Icons.check_circle : Icons.payment,
+                              color: _isPaye.value ? Colors.green : Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Paiement lors de l\'enregistrement',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _isPaye.value ? Colors.green.shade900 : Colors.orange.shade900,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            _isPaye.value ? 'Colis payé' : 'Colis non payé',
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Text(
+                            _isPaye.value ? 'Une transaction financière sera créée automatiquement' : 'Le paiement pourra être enregistré plus tard',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          value: _isPaye.value,
+                          activeColor: Colors.green,
+                          onChanged: (value) {
+                            _isPaye.value = value;
+                          },
+                        ),
+                        if (_isPaye.value) ...[
+                          const Divider(),
+                          Row(
+                            children: [
+                              const Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Montant à encaisser: ${widget.colis.montantTarif.toStringAsFixed(0)} FCFA',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  // Affichage du statut pour les colis déjà enregistrés
+                  _buildInfoRow('Statut paiement', widget.colis.isPaye ? 'Payé' : 'Non payé'),
+                  if (widget.colis.datePaiement != null) _buildInfoRow('Date paiement', dateFormat.format(widget.colis.datePaiement!)),
+                ],
+              ],
+            ),
+          ),
+        ));
+  }
+
   Widget _buildActionButtons() {
     return Column(
       children: [
@@ -294,7 +404,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
       // 1. Générer le numéro de suivi
       final numeroSuivi = await colisService.generateNumeroSuivi();
 
-      // 2. Mettre à jour le statut du colis
+      // 2. Mettre à jour le statut du colis et le paiement
       await colisService.updateStatut(
         widget.colis.id,
         'enregistre',
@@ -302,13 +412,17 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
         'Colis enregistré avec le numéro $numeroSuivi',
       );
 
-      // 3. Mettre à jour le numéro de suivi
-      await colisService.updateColis(widget.colis.id, {
+      // 3. Mettre à jour le numéro de suivi et le statut de paiement
+      final updateData = {
         'numeroSuivi': numeroSuivi,
-      });
+        'isPaye': _isPaye.value,
+        'datePaiement': _isPaye.value ? Timestamp.fromDate(DateTime.now()) : null,
+      };
+
+      await colisService.updateColis(widget.colis.id, updateData);
 
       // 4. Créer la transaction financière si le colis est payé
-      if (widget.colis.isPaye) {
+      if (_isPaye.value) {
         print('💰 [ENREGISTREMENT] Création de la transaction financière');
         final transactionService = Get.find<TransactionService>();
         final user = authController.currentUser.value!;
@@ -341,14 +455,16 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
       final colisUpdated = await colisService.getColisById(widget.colis.id);
 
       if (colisUpdated != null) {
-        // 7. Proposer l'impression du ticket
-        await _proposerImpressionTicket(colisUpdated);
+        // 7. Imprimer le ticket avec sélection d'imprimante
+        await _imprimerTicketAvecSelection(colisUpdated);
       }
 
       // 8. Afficher le message de succès
       Get.snackbar(
         'Succès',
-        'Colis enregistré avec succès\nNuméro de suivi: $numeroSuivi',
+        _isPaye.value
+            ? 'Colis enregistré et paiement encaissé\nNuméro de suivi: $numeroSuivi\nTicket prêt pour impression'
+            : 'Colis enregistré avec succès\nNuméro de suivi: $numeroSuivi\nTicket prêt pour impression',
         backgroundColor: CorexTheme.primaryGreen,
         colorText: Colors.white,
         duration: const Duration(seconds: 5),
@@ -368,137 +484,51 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
     }
   }
 
-  Future<void> _proposerImpressionTicket(ColisModel colis) async {
-    // Afficher une boîte de dialogue pour proposer l'impression
-    final result = await Get.dialog<String>(
-      AlertDialog(
-        title: const Text('Impression du reçu'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.receipt_long,
-              size: 64,
-              color: CorexTheme.primaryGreen,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Comment souhaitez-vous obtenir le reçu du colis ?',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'N° ${colis.numeroSuivi}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: CorexTheme.primaryGreen,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: 'skip'),
-            child: const Text('Plus tard'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Get.back(result: 'download'),
-            icon: const Icon(Icons.download),
-            label: const Text('Télécharger'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Get.back(result: 'print'),
-            icon: const Icon(Icons.print),
-            label: const Text('Imprimer'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: CorexTheme.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (result == 'print') {
-      try {
-        // Récupérer les informations de l'agence actuelle
-        final authController = Get.find<AuthController>();
-        final agenceId = authController.currentUser.value?.agenceId;
-
-        AgenceModel? agence;
-        if (agenceId != null) {
-          try {
-            final agenceService = Get.find<AgenceService>();
-            agence = await agenceService.getAgenceById(agenceId);
-          } catch (e) {
-            print('⚠️ [TICKET] Impossible de récupérer l\'agence: $e');
-          }
-        }
-
-        // Générer et imprimer le ticket optimisé
-        await TicketServiceOptimized.generateAndPrintTicket(
-          colis: colis,
-          agence: agence,
-        );
-
+  Future<void> _imprimerTicketAvecSelection(ColisModel colis) async {
+    try {
+      // Vérifier si l'impression est disponible
+      final isAvailable = await TicketPrintService.isAvailable();
+      if (!isAvailable) {
         Get.snackbar(
-          'Ticket généré',
-          'Ticket téléchargé et envoyé à l\'impression',
-          backgroundColor: CorexTheme.primaryGreen,
+          'Impression non disponible',
+          'L\'impression n\'est pas disponible sur cette plateforme',
+          backgroundColor: Colors.orange,
           colorText: Colors.white,
-          icon: const Icon(Icons.print, color: Colors.white),
+          icon: const Icon(Icons.warning, color: Colors.white),
         );
-      } catch (e) {
-        Get.snackbar(
-          'Erreur génération ticket',
-          'Erreur: $e',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          icon: const Icon(Icons.error, color: Colors.white),
-        );
+        return;
       }
-    } else if (result == 'download') {
-      try {
-        // Récupérer les informations de l'agence actuelle
-        final authController = Get.find<AuthController>();
-        final agenceId = authController.currentUser.value?.agenceId;
 
-        AgenceModel? agence;
-        if (agenceId != null) {
-          try {
-            final agenceService = Get.find<AgenceService>();
-            agence = await agenceService.getAgenceById(agenceId);
-          } catch (e) {
-            print('⚠️ [TICKET] Impossible de récupérer l\'agence: $e');
-          }
+      // Récupérer les informations de l'agence actuelle
+      final authController = Get.find<AuthController>();
+      final agenceId = authController.currentUser.value?.agenceId;
+
+      AgenceModel? agence;
+      if (agenceId != null) {
+        try {
+          final agenceService = Get.find<AgenceService>();
+          agence = await agenceService.getAgenceById(agenceId);
+        } catch (e) {
+          print('⚠️ [TICKET] Impossible de récupérer l\'agence: $e');
         }
-
-        // Télécharger uniquement le ticket
-        await TicketServiceOptimized.downloadTicketOnly(
-          colis: colis,
-          agence: agence,
-        );
-
-        Get.snackbar(
-          'Téléchargement lancé',
-          'Le reçu a été téléchargé',
-          backgroundColor: Colors.blue,
-          colorText: Colors.white,
-          icon: const Icon(Icons.download, color: Colors.white),
-        );
-      } catch (e) {
-        Get.snackbar(
-          'Erreur de téléchargement',
-          'Impossible de télécharger le reçu: $e',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          icon: const Icon(Icons.error, color: Colors.white),
-        );
       }
+
+      // Ouvrir le dialogue d'impression avec sélection d'imprimante
+      await TicketPrintService.printTicket(
+        colis: colis,
+        agence: agence,
+      );
+
+      print('✅ [TICKET] Dialogue d\'impression ouvert avec sélection d\'imprimante');
+    } catch (e) {
+      print('❌ [TICKET] Erreur impression avec sélection: $e');
+      Get.snackbar(
+        'Erreur d\'impression',
+        'Impossible d\'ouvrir le dialogue d\'impression: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        icon: const Icon(Icons.error, color: Colors.white),
+      );
     }
   }
 }
