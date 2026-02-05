@@ -59,12 +59,21 @@ class HomeScreen extends StatelessWidget {
       body: Obx(() {
         final user = authController.currentUser.value;
 
+        if (user == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // Interface spéciale pour les clients
+        if (user.role == 'client') {
+          return _buildClientInterface(user);
+        }
+
         // Si l'utilisateur est PDG ou admin, afficher le dashboard PDG
-        if (user != null && (user.role == 'pdg' || user.role == 'admin')) {
+        if (user.role == 'pdg' || user.role == 'admin') {
           return const PdgDashboardScreen(isEmbedded: true);
         }
 
-        // Sinon, afficher l'interface standard
+        // Sinon, afficher l'interface standard pour les employés
         return _buildStandardHomeContent(authController);
       }),
     );
@@ -146,6 +155,22 @@ class HomeScreen extends StatelessWidget {
                             onTap: () {
                               Get.back();
                               Get.toNamed('/pdg/dashboard');
+                            },
+                          ),
+                        // Validation des demandes clients - Nouveau
+                        if (user?.role == 'gestionnaire' || user?.role == 'admin')
+                          ListTile(
+                            leading: const Icon(Icons.approval, color: Color(0xFF2E7D32)),
+                            title: const Text(
+                              'Demandes Clients',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                            onTap: () {
+                              Get.back();
+                              Get.toNamed('/demandes');
                             },
                           ),
                         ListTile(
@@ -438,6 +463,349 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildClientInterface(UserModel user) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Déterminer le nombre de colonnes selon la largeur d'écran
+        int crossAxisCount;
+        double cardPadding;
+        double mainPadding;
+
+        if (constraints.maxWidth < 600) {
+          // Mobile
+          crossAxisCount = 1;
+          cardPadding = 16.0;
+          mainPadding = 16.0;
+        } else if (constraints.maxWidth < 900) {
+          // Tablette
+          crossAxisCount = 2;
+          cardPadding = 20.0;
+          mainPadding = 24.0;
+        } else {
+          // Desktop
+          crossAxisCount = 3;
+          cardPadding = 24.0;
+          mainPadding = 32.0;
+        }
+
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF2E7D32),
+                Color(0xFF4CAF50),
+              ],
+            ),
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(mainPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Bienvenue - Responsive
+                _buildWelcomeCard(user, constraints.maxWidth),
+                const SizedBox(height: 24),
+
+                // Titre Services
+                Text(
+                  'Services disponibles',
+                  style: TextStyle(
+                    fontSize: constraints.maxWidth < 600 ? 20 : 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Grid responsive des services
+                _buildResponsiveServicesGrid(crossAxisCount, cardPadding),
+
+                // Espacement en bas pour éviter le débordement
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWelcomeCard(UserModel user, double screenWidth) {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(screenWidth < 600 ? 16.0 : 24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Titre responsive
+            Text(
+              'Bienvenue, ${user.prenom} ${user.nom}',
+              style: TextStyle(
+                fontSize: screenWidth < 600 ? 20 : 28,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF2E7D32),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Informations utilisateur - Layout responsive
+            if (screenWidth < 600) ...[
+              // Mobile : Layout vertical
+              _buildUserInfo('Email', user.email, Icons.email),
+              const SizedBox(height: 8),
+              _buildUserInfo('Téléphone', user.telephone, Icons.phone),
+            ] else ...[
+              // Desktop/Tablette : Layout horizontal
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildUserInfo('Email', user.email, Icons.email),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: _buildUserInfo('Téléphone', user.telephone, Icons.phone),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserInfo(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: const Color(0xFF2E7D32)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResponsiveServicesGrid(int crossAxisCount, double cardPadding) {
+    final services = [
+      {
+        'title': 'Demande de Course',
+        'description': 'Demander une course pour vos déplacements',
+        'icon': Icons.directions_car,
+        'color': const Color(0xFF2E7D32),
+      },
+      {
+        'title': 'Demande de Colis',
+        'description': 'Demander l\'envoi d\'un colis',
+        'icon': Icons.local_shipping,
+        'color': const Color(0xFF1976D2),
+      },
+      {
+        'title': 'Mes Demandes',
+        'description': 'Suivre l\'état de vos demandes',
+        'icon': Icons.track_changes,
+        'color': const Color(0xFFFF9800),
+      },
+      {
+        'title': 'Historique',
+        'description': 'Consulter l\'historique de vos services',
+        'icon': Icons.history,
+        'color': const Color(0xFF9C27B0),
+      },
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: crossAxisCount == 1 ? 3.5 : 1.1, // Ratio adaptatif
+      ),
+      itemCount: services.length,
+      itemBuilder: (context, index) {
+        final service = services[index];
+        return _buildResponsiveServiceCard(
+          service['title'] as String,
+          service['description'] as String,
+          service['icon'] as IconData,
+          service['color'] as Color,
+          cardPadding,
+          crossAxisCount == 1, // isMobile
+          () {
+            // Navigation selon le service
+            switch (service['title']) {
+              case 'Demande de Course':
+                Get.toNamed('/client/demande-course');
+                break;
+              case 'Demande de Colis':
+                Get.toNamed('/client/demande-colis');
+                break;
+              case 'Mes Demandes':
+                Get.toNamed('/client/mes-demandes');
+                break;
+              case 'Historique':
+                Get.toNamed('/client/historique');
+                break;
+              default:
+                Get.snackbar(
+                  'Bientôt disponible',
+                  'Le service "${service['title']}" sera bientôt disponible',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: const Color(0xFF4CAF50),
+                  colorText: Colors.white,
+                  margin: const EdgeInsets.all(16),
+                );
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildResponsiveServiceCard(
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+    double padding,
+    bool isMobile,
+    VoidCallback onTap,
+  ) {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: EdgeInsets.all(padding),
+          child: isMobile ? _buildMobileServiceCardContent(title, description, icon, color) : _buildDesktopServiceCardContent(title, description, icon, color),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileServiceCardContent(String title, String description, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            size: 32,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopServiceCardContent(String title, String description, IconData icon, Color color) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            size: 48,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          description,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
   String _getRoleLabel(String role) {
     switch (role) {
       case 'admin':
@@ -450,6 +818,8 @@ class HomeScreen extends StatelessWidget {
         return 'Coursier';
       case 'agent':
         return 'Agent';
+      case 'client':
+        return 'Client';
       default:
         return role;
     }

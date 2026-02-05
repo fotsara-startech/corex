@@ -69,7 +69,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Détails de la Course'),
+          title: const Text('Détails de la Tâche'),
           backgroundColor: CorexTheme.primaryGreen,
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -79,7 +79,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     if (_course == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Détails de la Course'),
+          title: const Text('Détails de la Tâche'),
           backgroundColor: CorexTheme.primaryGreen,
         ),
         body: const Center(child: Text('Course introuvable')),
@@ -90,7 +90,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Détails de la Course'),
+        title: const Text('Détails de la Tâche'),
         backgroundColor: CorexTheme.primaryGreen,
         actions: [
           IconButton(
@@ -154,7 +154,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Détails de la Course',
+                      'Détails de la Tâche',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -243,7 +243,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Coursier
+            // Commissionnaire
             if (_course!.coursierNom != null)
               Card(
                 child: Padding(
@@ -252,13 +252,13 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Coursier',
+                        'Commissionnaire',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                       ),
                       const Divider(),
-                      _buildDetailRow(Icons.delivery_dining, 'Nom', _course!.coursierNom!),
+                      _buildDetailRow(Icons.person_pin, 'Nom', _course!.coursierNom!),
                       if (_course!.dateAttribution != null)
                         _buildDetailRow(
                           Icons.calendar_today,

@@ -1,11 +1,11 @@
 {
-    "name": "corex_desktop",
-    "short_name": "corex_desktop",
+    "name": "COREX - Système de Gestion Logistique",
+    "short_name": "COREX",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#2E7D32",
+    "theme_color": "#2E7D32",
+    "description": "Système de gestion logistique pour entreprises de transport et livraison",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

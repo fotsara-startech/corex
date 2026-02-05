@@ -50,7 +50,7 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enregistrer le Paiement'),
+        title: const Text('Enregistrer le Paiement de la Tâche'),
         backgroundColor: CorexTheme.primaryGreen,
       ),
       body: SingleChildScrollView(
@@ -68,7 +68,7 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Détails de la Course',
+                        'Détails de la Tâche',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -77,7 +77,7 @@ class _PaiementCourseScreenState extends State<PaiementCourseScreen> {
                       _buildInfoRow('Tâche', widget.course.tache),
                       _buildInfoRow('Lieu', widget.course.lieu),
                       _buildInfoRow('Client', widget.course.clientNom),
-                      _buildInfoRow('Coursier', widget.course.coursierNom ?? 'N/A'),
+                      _buildInfoRow('Commissionnaire', widget.course.coursierNom ?? 'N/A'),
                       if (widget.course.dateFin != null)
                         _buildInfoRow(
                           'Terminée le',

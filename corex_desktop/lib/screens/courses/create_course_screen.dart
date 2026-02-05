@@ -71,7 +71,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nouvelle Course'),
+        title: const Text('Nouvelle Tâche'),
         backgroundColor: CorexTheme.primaryGreen,
       ),
       body: Obx(() {
@@ -139,7 +139,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Détails de la Course',
+                          'Détails de la Tâche',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -311,7 +311,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.check),
-                          label: const Text('Créer la Course'),
+                          label: const Text('Créer la Tâche'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: CorexTheme.primaryGreen,
                             foregroundColor: Colors.white,

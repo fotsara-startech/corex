@@ -16,15 +16,42 @@ class CoursesListScreen extends StatefulWidget {
 }
 
 class _CoursesListScreenState extends State<CoursesListScreen> {
-  final CourseController _courseController = Get.find<CourseController>();
-  final AuthController _authController = Get.find<AuthController>();
+  CourseController? _courseController;
+  AuthController? _authController;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _courseController.loadCourses();
-    });
+    _initializeControllers();
+  }
+
+  void _initializeControllers() {
+    try {
+      // Initialiser les contrôleurs de manière sécurisée
+      if (Get.isRegistered<CourseController>()) {
+        _courseController = Get.find<CourseController>();
+      } else {
+        _courseController = Get.put(CourseController());
+      }
+
+      if (Get.isRegistered<AuthController>()) {
+        _authController = Get.find<AuthController>();
+      } else {
+        _authController = Get.put(AuthController());
+      }
+
+      // Charger les données après l'initialisation
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _courseController?.loadCourses();
+      });
+    } catch (e) {
+      print('⚠️ [COURSES_LIST] Erreur initialisation contrôleurs: $e');
+      // Fallback: créer les contrôleurs directement
+      _courseController = CourseController();
+      _authController = AuthController();
+      Get.put(_courseController!, permanent: true);
+      Get.put(_authController!, permanent: true);
+    }
   }
 
   Color _getStatutColor(String statut) {
@@ -59,22 +86,42 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _authController.currentUser.value;
+    // Vérifier que les contrôleurs sont initialisés
+    if (_courseController == null || _authController == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Service de Commissionnement'),
+          backgroundColor: CorexTheme.primaryGreen,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Initialisation en cours...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final user = _authController?.currentUser.value;
     final canCreate = user?.role == 'commercial' || user?.role == 'gestionnaire' || user?.role == 'admin';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Service de Courses'),
+        title: const Text('Service de Commissionnement'),
         backgroundColor: CorexTheme.primaryGreen,
         actions: [
           IconButton(
             icon: const Icon(Icons.list_alt),
             onPressed: () => Get.to(() => const SuiviCoursesScreen()),
-            tooltip: 'Suivi des courses',
+            tooltip: 'Suivi des tâches',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _courseController.loadCourses(),
+            onPressed: () => _courseController?.loadCourses(),
           ),
         ],
       ),
@@ -88,35 +135,35 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   children: [
                     _buildStatCard(
                       'Total',
-                      _courseController.totalCourses.toString(),
+                      (_courseController?.totalCourses ?? 0).toString(),
                       Colors.blue,
                       Icons.list,
                     ),
                     const SizedBox(width: 16),
                     _buildStatCard(
                       'En Attente',
-                      _courseController.coursesEnAttente.toString(),
+                      (_courseController?.coursesEnAttente ?? 0).toString(),
                       Colors.orange,
                       Icons.pending,
                     ),
                     const SizedBox(width: 16),
                     _buildStatCard(
                       'En Cours',
-                      _courseController.coursesEnCours.toString(),
+                      (_courseController?.coursesEnCours ?? 0).toString(),
                       Colors.blue,
-                      Icons.directions_run,
+                      Icons.assignment_ind,
                     ),
                     const SizedBox(width: 16),
                     _buildStatCard(
                       'Terminées',
-                      _courseController.coursesTerminees.toString(),
+                      (_courseController?.coursesTerminees ?? 0).toString(),
                       Colors.green,
                       Icons.check_circle,
                     ),
                     const SizedBox(width: 16),
                     _buildStatCard(
                       'Commission',
-                      '${_courseController.totalCommissions.toStringAsFixed(0)} FCFA',
+                      '${(_courseController?.totalCommissions ?? 0).toStringAsFixed(0)} FCFA',
                       CorexTheme.primaryGreen,
                       Icons.attach_money,
                     ),
@@ -131,7 +178,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
               children: [
                 Expanded(
                   child: Obx(() => DropdownButtonFormField<String>(
-                        value: _courseController.filterStatut.value,
+                        value: _courseController?.filterStatut.value ?? 'tous',
                         decoration: const InputDecoration(
                           labelText: 'Filtrer par statut',
                           border: OutlineInputBorder(),
@@ -145,8 +192,8 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                           DropdownMenuItem(value: 'annulee', child: Text('Annulées')),
                         ],
                         onChanged: (value) {
-                          if (value != null) {
-                            _courseController.filterStatut.value = value;
+                          if (value != null && _courseController != null) {
+                            _courseController!.filterStatut.value = value;
                           }
                         },
                       )),
@@ -158,21 +205,21 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
           // Liste des courses
           Expanded(
             child: Obx(() {
-              if (_courseController.isLoading.value) {
+              if (_courseController?.isLoading.value == true) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final courses = _courseController.filteredCourses;
+              final courses = _courseController?.filteredCourses ?? [];
 
               if (courses.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.directions_run, size: 64, color: Colors.grey[400]),
+                      Icon(Icons.assignment, size: 64, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       Text(
-                        'Aucune course',
+                        'Aucune tâche',
                         style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
                     ],
@@ -197,7 +244,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
               onPressed: () => Get.to(() => const CreateCourseScreen()),
               backgroundColor: CorexTheme.primaryGreen,
               icon: const Icon(Icons.add),
-              label: const Text('Nouvelle Course'),
+              label: const Text('Nouvelle Tâche'),
             )
           : null,
     );
@@ -312,7 +359,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
               ),
               if (course.coursierNom != null) ...[
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.delivery_dining, 'Coursier', course.coursierNom!),
+                _buildInfoRow(Icons.person_pin, 'Commissionnaire', course.coursierNom!),
               ],
               const SizedBox(height: 8),
               _buildInfoRow(Icons.calendar_today, 'Créée le', dateFormat.format(course.dateCreation)),

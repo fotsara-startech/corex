@@ -49,7 +49,7 @@ class _AttribuerCourseScreenState extends State<AttribuerCourseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Attribuer la Course'),
+        title: const Text('Attribuer la Tâche'),
         backgroundColor: CorexTheme.primaryGreen,
       ),
       body: Obx(() {
@@ -70,7 +70,7 @@ class _AttribuerCourseScreenState extends State<AttribuerCourseScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Détails de la Course',
+                        'Détails de la Tâche',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -97,7 +97,7 @@ class _AttribuerCourseScreenState extends State<AttribuerCourseScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sélectionner un Coursier',
+                        'Sélectionner un Commissionnaire',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -105,16 +105,16 @@ class _AttribuerCourseScreenState extends State<AttribuerCourseScreen> {
                       const SizedBox(height: 16),
                       if (_coursiers.isEmpty)
                         const Text(
-                          'Aucun coursier actif disponible',
+                          'Aucun commissionnaire actif disponible',
                           style: TextStyle(color: Colors.red),
                         )
                       else
                         DropdownButtonFormField<UserModel>(
                           value: _selectedCoursier,
                           decoration: const InputDecoration(
-                            labelText: 'Coursier',
+                            labelText: 'Commissionnaire',
                             border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.delivery_dining),
+                            prefixIcon: Icon(Icons.person_pin),
                           ),
                           items: _coursiers.map((coursier) {
                             return DropdownMenuItem(

@@ -13,16 +13,43 @@ class SuiviCoursesScreen extends StatefulWidget {
 }
 
 class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
-  final CourseController _courseController = Get.find<CourseController>();
-  final UserController _userController = Get.find<UserController>();
+  CourseController? _courseController;
+  UserController? _userController;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _courseController.loadCourses();
-      _userController.loadUsers();
-    });
+    _initializeControllers();
+  }
+
+  void _initializeControllers() {
+    try {
+      // Initialiser les contrôleurs de manière sécurisée
+      if (Get.isRegistered<CourseController>()) {
+        _courseController = Get.find<CourseController>();
+      } else {
+        _courseController = Get.put(CourseController());
+      }
+
+      if (Get.isRegistered<UserController>()) {
+        _userController = Get.find<UserController>();
+      } else {
+        _userController = Get.put(UserController());
+      }
+
+      // Charger les données après l'initialisation
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _courseController?.loadCourses();
+        _userController?.loadUsers();
+      });
+    } catch (e) {
+      print('⚠️ [SUIVI_COURSES] Erreur initialisation contrôleurs: $e');
+      // Fallback: créer les contrôleurs directement
+      _courseController = CourseController();
+      _userController = UserController();
+      Get.put(_courseController!, permanent: true);
+      Get.put(_userController!, permanent: true);
+    }
   }
 
   Color _getStatutColor(String statut) {
@@ -56,21 +83,39 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
   }
 
   List<UserModel> get _coursiers {
-    return _userController.usersList
-        .where((user) => user.role == 'coursier')
-        .toList();
+    return _userController?.usersList.where((user) => user.role == 'coursier').toList() ?? [];
   }
 
   @override
   Widget build(BuildContext context) {
+    // Vérifier que les contrôleurs sont initialisés
+    if (_courseController == null || _userController == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Suivi des Tâches'),
+          backgroundColor: CorexTheme.primaryGreen,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Initialisation en cours...'),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Suivi des Courses'),
+        title: const Text('Suivi des Tâches'),
         backgroundColor: CorexTheme.primaryGreen,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _courseController.loadCourses(),
+            onPressed: () => _courseController?.loadCourses(),
           ),
         ],
       ),
@@ -84,28 +129,28 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
                   children: [
                     _buildStatCard(
                       'Total',
-                      _courseController.totalCourses.toString(),
+                      (_courseController?.totalCourses ?? 0).toString(),
                       Colors.blue,
                       Icons.list,
                     ),
                     const SizedBox(width: 16),
                     _buildStatCard(
                       'En Attente',
-                      _courseController.coursesEnAttente.toString(),
+                      (_courseController?.coursesEnAttente ?? 0).toString(),
                       Colors.orange,
                       Icons.pending,
                     ),
                     const SizedBox(width: 16),
                     _buildStatCard(
                       'En Cours',
-                      _courseController.coursesEnCours.toString(),
+                      (_courseController?.coursesEnCours ?? 0).toString(),
                       Colors.blue,
-                      Icons.directions_run,
+                      Icons.assignment_ind,
                     ),
                     const SizedBox(width: 16),
                     _buildStatCard(
                       'Terminées',
-                      _courseController.coursesTerminees.toString(),
+                      (_courseController?.coursesTerminees ?? 0).toString(),
                       Colors.green,
                       Icons.check_circle,
                     ),
@@ -120,7 +165,7 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
               children: [
                 Expanded(
                   child: Obx(() => DropdownButtonFormField<String>(
-                        value: _courseController.filterStatut.value,
+                        value: _courseController?.filterStatut.value ?? 'tous',
                         decoration: const InputDecoration(
                           labelText: 'Filtrer par statut',
                           border: OutlineInputBorder(),
@@ -128,18 +173,14 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
                         ),
                         items: const [
                           DropdownMenuItem(value: 'tous', child: Text('Tous')),
-                          DropdownMenuItem(
-                              value: 'enAttente', child: Text('En Attente')),
-                          DropdownMenuItem(
-                              value: 'enCours', child: Text('En Cours')),
-                          DropdownMenuItem(
-                              value: 'terminee', child: Text('Terminées')),
-                          DropdownMenuItem(
-                              value: 'annulee', child: Text('Annulées')),
+                          DropdownMenuItem(value: 'enAttente', child: Text('En Attente')),
+                          DropdownMenuItem(value: 'enCours', child: Text('En Cours')),
+                          DropdownMenuItem(value: 'terminee', child: Text('Terminées')),
+                          DropdownMenuItem(value: 'annulee', child: Text('Annulées')),
                         ],
                         onChanged: (value) {
-                          if (value != null) {
-                            _courseController.filterStatut.value = value;
+                          if (value != null && _courseController != null) {
+                            _courseController!.filterStatut.value = value;
                           }
                         },
                       )),
@@ -147,15 +188,14 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Obx(() => DropdownButtonFormField<String>(
-                        value: _courseController.filterCoursier.value,
+                        value: _courseController?.filterCoursier.value ?? 'tous',
                         decoration: const InputDecoration(
-                          labelText: 'Filtrer par coursier',
+                          labelText: 'Filtrer par commissionnaire',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.person),
                         ),
                         items: [
-                          const DropdownMenuItem(
-                              value: 'tous', child: Text('Tous')),
+                          const DropdownMenuItem(value: 'tous', child: Text('Tous')),
                           ..._coursiers.map((coursier) {
                             return DropdownMenuItem(
                               value: coursier.id,
@@ -164,8 +204,8 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
                           }),
                         ],
                         onChanged: (value) {
-                          if (value != null) {
-                            _courseController.filterCoursier.value = value;
+                          if (value != null && _courseController != null) {
+                            _courseController!.filterCoursier.value = value;
                           }
                         },
                       )),
@@ -177,22 +217,21 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
           // Liste des courses
           Expanded(
             child: Obx(() {
-              if (_courseController.isLoading.value) {
+              if (_courseController?.isLoading.value == true) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final courses = _courseController.filteredCourses;
+              final courses = _courseController?.filteredCourses ?? [];
 
               if (courses.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.directions_run,
-                          size: 64, color: Colors.grey[400]),
+                      Icon(Icons.assignment, size: 64, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       Text(
-                        'Aucune course',
+                        'Aucune tâche',
                         style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
                     ],
@@ -215,8 +254,7 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
     );
   }
 
-  Widget _buildStatCard(
-      String label, String value, Color color, IconData icon) {
+  Widget _buildStatCard(String label, String value, Color color, IconData icon) {
     return Expanded(
       child: Card(
         child: Padding(
@@ -278,8 +316,7 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: _getStatutColor(course.statut).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -298,19 +335,15 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildInfoRow(
-                        Icons.person, 'Client', course.clientNom),
+                    child: _buildInfoRow(Icons.person, 'Client', course.clientNom),
                   ),
                   Expanded(
-                    child: _buildInfoRow(
-                        Icons.phone, 'Téléphone', course.clientTelephone),
+                    child: _buildInfoRow(Icons.phone, 'Téléphone', course.clientTelephone),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              if (course.coursierNom != null)
-                _buildInfoRow(
-                    Icons.delivery_dining, 'Coursier', course.coursierNom!),
+              if (course.coursierNom != null) _buildInfoRow(Icons.person_pin, 'Commissionnaire', course.coursierNom!),
               const SizedBox(height: 8),
               Row(
                 children: [
