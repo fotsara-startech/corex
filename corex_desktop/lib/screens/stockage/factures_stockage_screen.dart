@@ -10,7 +10,7 @@ class FacturesStockageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(StockageController());
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     controller.loadFactures();
 
     return Scaffold(
@@ -150,7 +150,11 @@ class _FactureCard extends StatelessWidget {
         ),
         trailing: Chip(
           label: Text(
-            isPaye ? 'Payée' : isAnnulee ? 'Annulée' : 'Impayée',
+            isPaye
+                ? 'Payée'
+                : isAnnulee
+                    ? 'Annulée'
+                    : 'Impayée',
           ),
           backgroundColor: isPaye
               ? Colors.green[100]
@@ -241,7 +245,7 @@ class _PayerFactureDialogState extends State<_PayerFactureDialog> {
       transactionId = 'TRANS-${DateTime.now().millisecondsSinceEpoch}';
     }
 
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     final success = await controller.marquerFacturePayee(
       widget.facture.id,
       transactionId ?? '',

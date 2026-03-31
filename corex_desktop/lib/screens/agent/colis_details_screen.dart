@@ -13,6 +13,7 @@ import 'package:corex_shared/services/colis_service.dart';
 import 'package:corex_shared/controllers/auth_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:corex_shared/services/ticket_print_service.dart';
+import 'enregistrement_colis_screen.dart';
 
 class ColisDetailsScreen extends StatefulWidget {
   final ColisModel colis;
@@ -26,6 +27,7 @@ class ColisDetailsScreen extends StatefulWidget {
 class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
   final _isProcessing = false.obs;
   final _isPaye = false.obs;
+  final _imprimerRecu = true.obs; // Option d'impression (activée par défaut)
 
   @override
   void initState() {
@@ -84,7 +86,8 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
               Icons.inventory_2,
               [
                 _buildInfoRow('Contenu', widget.colis.contenu),
-                _buildInfoRow('Poids', '${widget.colis.poids} kg'),
+                if (widget.colis.poids != null) _buildInfoRow('Poids', '${widget.colis.poids} kg'),
+                if (widget.colis.valeurDeclaree != null) _buildInfoRow('Valeur déclarée', '${widget.colis.valeurDeclaree!.toStringAsFixed(0)} FCFA'),
                 if (widget.colis.dimensions != null) _buildInfoRow('Dimensions', widget.colis.dimensions!),
                 _buildInfoRow('Mode de livraison', _getModeLivraisonLabel()),
                 if (widget.colis.agenceTransportNom != null) _buildInfoRow('Agence transport', widget.colis.agenceTransportNom!),
@@ -108,7 +111,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
             const SizedBox(height: 24),
 
             // Boutons d'action
-            if (widget.colis.statut == 'collecte') Obx(() => _buildActionButtons()),
+            if (widget.colis.statut == 'collecte') _buildActionButtons(),
           ],
         ),
       ),
@@ -234,34 +237,44 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
   Widget _buildPaymentSectionCard() {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
-    return Obx(() => Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.payments, color: CorexTheme.primaryGreen),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Informations Financières',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                Icon(Icons.payments, color: CorexTheme.primaryGreen),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Informations Financières',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                const Divider(height: 24),
+                TextButton.icon(
+                  onPressed: () => _showModifierFraisDialog(),
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Modifier', style: TextStyle(fontSize: 13)),
+                  style: TextButton.styleFrom(foregroundColor: CorexTheme.primaryGreen),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
 
-                _buildInfoRow('Tarif', '${widget.colis.montantTarif} FCFA', bold: true),
+            // Détail éclaté des frais
+            if (widget.colis.fraisLivraison > 0) _buildFraisRow('Frais de livraison', widget.colis.fraisLivraison, Colors.green.shade700, isCorex: true),
+            if (widget.colis.fraisCollecte > 0) _buildFraisRow('Montant collecté (vendeur)', widget.colis.fraisCollecte, Colors.orange.shade700, isCorex: false),
+            if (widget.colis.commissionVente > 0) _buildFraisRow('Commission vente', widget.colis.commissionVente, Colors.purple.shade700, isCorex: true),
+            const Divider(height: 16),
+            _buildFraisRow('Total à encaisser', widget.colis.montantTarif, Colors.black87, bold: true),
 
-                // Section paiement interactive pour les colis non payés
-                if (widget.colis.statut == 'collecte') ...[
-                  const SizedBox(height: 16),
-                  Container(
+            // Section paiement interactive pour les colis non payés
+            if (widget.colis.statut == 'collecte') ...[
+              const SizedBox(height: 16),
+              Obx(() => Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: _isPaye.value ? Colors.green.shade50 : Colors.orange.shade50,
@@ -310,70 +323,149 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
                         ),
                         if (_isPaye.value) ...[
                           const Divider(),
-                          Row(
-                            children: [
-                              const Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Montant à encaisser: ${widget.colis.montantTarif.toStringAsFixed(0)} FCFA',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                          if (widget.colis.fraisCollecte > 0) ...[
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.orange.shade200),
                               ),
-                            ],
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, size: 16, color: Colors.orange.shade700),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Le montant collecté (${widget.colis.fraisCollecte.toStringAsFixed(0)} FCFA) est à reverser au vendeur — il ne sera PAS enregistré en caisse COREX.',
+                                      style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.green.shade200),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.store, size: 16, color: Colors.green.shade700),
+                                    const SizedBox(width: 8),
+                                    Text('Recette COREX:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade900)),
+                                  ],
+                                ),
+                                Text(
+                                  '${(widget.colis.montantTarif - widget.colis.fraisCollecte).toStringAsFixed(0)} FCFA',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green.shade900),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ],
                     ),
-                  ),
-                ] else ...[
-                  // Affichage du statut pour les colis déjà enregistrés
-                  _buildInfoRow('Statut paiement', widget.colis.isPaye ? 'Payé' : 'Non payé'),
-                  if (widget.colis.datePaiement != null) _buildInfoRow('Date paiement', dateFormat.format(widget.colis.datePaiement!)),
-                ],
-              ],
-            ),
-          ),
-        ));
+                  )),
+            ] else ...[
+              _buildInfoRow('Statut paiement', widget.colis.isPaye ? 'Payé' : 'Non payé'),
+              if (widget.colis.datePaiement != null) _buildInfoRow('Date paiement', dateFormat.format(widget.colis.datePaiement!)),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildActionButtons() {
     return Column(
       children: [
+        // Checkbox pour l'impression du reçu
+        Obx(() => Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Row(
+                  children: [
+                    Icon(
+                      _imprimerRecu.value ? Icons.print : Icons.print_disabled,
+                      color: _imprimerRecu.value ? CorexTheme.primaryGreen : Colors.grey,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Imprimer le reçu après enregistrement',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Text(
+                  _imprimerRecu.value ? 'Le reçu sera imprimé automatiquement' : 'Vous pourrez imprimer le reçu plus tard',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                value: _imprimerRecu.value,
+                activeColor: CorexTheme.primaryGreen,
+                onChanged: (value) {
+                  _imprimerRecu.value = value ?? true;
+                },
+              ),
+            )),
+        const SizedBox(height: 16),
+        Obx(() => SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isProcessing.value ? null : _enregistrerColis,
+                icon: _isProcessing.value
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.app_registration),
+                label: Text(
+                  _isProcessing.value
+                      ? 'ENREGISTREMENT...'
+                      : _imprimerRecu.value
+                          ? 'ENREGISTRER ET IMPRIMER LE REÇU'
+                          : 'ENREGISTRER LE COLIS',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: CorexTheme.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 16),
+                ),
+              ),
+            )),
+        const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _isProcessing.value ? null : _enregistrerColis,
-            icon: _isProcessing.value
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Icon(Icons.app_registration),
-            label: Text(_isProcessing.value ? 'ENREGISTREMENT...' : 'ENREGISTRER ET IMPRIMER LE REÇU'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: CorexTheme.primaryGreen,
-              foregroundColor: Colors.white,
+          child: OutlinedButton.icon(
+            onPressed: () => Get.back(),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('RETOUR'),
+            style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              textStyle: const TextStyle(fontSize: 16),
+              side: const BorderSide(color: CorexTheme.primaryGreen),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back),
-          label: const Text('RETOUR'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            side: const BorderSide(color: CorexTheme.primaryGreen),
           ),
         ),
       ],
@@ -393,12 +485,45 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
     }
   }
 
+  Widget _buildFraisRow(String label, double montant, Color color, {bool bold = false, bool isCorex = true}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Text(label, style: TextStyle(fontSize: 13, color: color, fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
+              if (!isCorex) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text('à reverser', style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.w500)),
+                ),
+              ],
+            ],
+          ),
+          Text('${montant.toStringAsFixed(0)} FCFA', style: TextStyle(fontSize: 13, color: color, fontWeight: bold ? FontWeight.bold : FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
   Future<void> _enregistrerColis() async {
     _isProcessing.value = true;
 
     try {
       final colisService = Get.find<ColisService>();
       final authController = Get.find<AuthController>();
+
+      // Initialiser ColisController s'il n'est pas encore enregistré
+      if (!Get.isRegistered<ColisController>()) {
+        Get.put(ColisController(), permanent: true);
+      }
       final colisController = Get.find<ColisController>();
 
       // 1. Générer le numéro de suivi
@@ -424,6 +549,13 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
       // 4. Créer la transaction financière si le colis est payé
       if (_isPaye.value) {
         print('💰 [ENREGISTREMENT] Création de la transaction financière');
+
+        // Vérifier et initialiser le TransactionService si nécessaire
+        if (!Get.isRegistered<TransactionService>()) {
+          print('⚠️ [ENREGISTREMENT] TransactionService non trouvé, initialisation...');
+          Get.put(TransactionService(), permanent: true);
+        }
+
         final transactionService = Get.find<TransactionService>();
         final user = authController.currentUser.value!;
 
@@ -431,7 +563,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
           id: const Uuid().v4(),
           agenceId: user.agenceId!,
           type: 'recette',
-          montant: widget.colis.montantTarif,
+          montant: widget.colis.montantTarif - widget.colis.fraisCollecte,
           date: DateTime.now(),
           categorieRecette: 'expedition',
           description: 'Enregistrement colis $numeroSuivi - ${widget.colis.destinataireNom}',
@@ -454,24 +586,33 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
       // 6. Récupérer le colis mis à jour
       final colisUpdated = await colisService.getColisById(widget.colis.id);
 
-      if (colisUpdated != null) {
-        // 7. Imprimer le ticket avec sélection d'imprimante
+      if (colisUpdated != null && _imprimerRecu.value) {
+        // 7. Imprimer le ticket seulement si l'option est activée
         await _imprimerTicketAvecSelection(colisUpdated);
       }
 
       // 8. Afficher le message de succès
+      String message;
+      if (_isPaye.value && _imprimerRecu.value) {
+        message = 'Colis enregistré et paiement encaissé\nNuméro de suivi: $numeroSuivi\nTicket prêt pour impression';
+      } else if (_isPaye.value) {
+        message = 'Colis enregistré et paiement encaissé\nNuméro de suivi: $numeroSuivi';
+      } else if (_imprimerRecu.value) {
+        message = 'Colis enregistré avec succès\nNuméro de suivi: $numeroSuivi\nTicket prêt pour impression';
+      } else {
+        message = 'Colis enregistré avec succès\nNuméro de suivi: $numeroSuivi';
+      }
+
       Get.snackbar(
         'Succès',
-        _isPaye.value
-            ? 'Colis enregistré et paiement encaissé\nNuméro de suivi: $numeroSuivi\nTicket prêt pour impression'
-            : 'Colis enregistré avec succès\nNuméro de suivi: $numeroSuivi\nTicket prêt pour impression',
+        message,
         backgroundColor: CorexTheme.primaryGreen,
         colorText: Colors.white,
         duration: const Duration(seconds: 5),
       );
 
-      // 9. Retourner à l'écran précédent
-      Get.back();
+      // 9. Recharger la liste et retourner à l'écran d'enregistrement
+      Get.off(() => const EnregistrementColisScreen());
     } catch (e) {
       Get.snackbar(
         'Erreur',
@@ -529,6 +670,194 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
         colorText: Colors.white,
         icon: const Icon(Icons.error, color: Colors.white),
       );
+    }
+  }
+
+  void _showModifierFraisDialog() {
+    final fraisLivraisonCtrl = TextEditingController(text: widget.colis.fraisLivraison.toStringAsFixed(0));
+    final fraisCollecteCtrl = TextEditingController(text: widget.colis.fraisCollecte.toStringAsFixed(0));
+    final commissionVenteCtrl = TextEditingController(text: widget.colis.commissionVente.toStringAsFixed(0));
+
+    double calcTotal() => (double.tryParse(fraisLivraisonCtrl.text) ?? 0) + (double.tryParse(fraisCollecteCtrl.text) ?? 0) + (double.tryParse(commissionVenteCtrl.text) ?? 0);
+
+    Get.dialog(StatefulBuilder(builder: (ctx, setDialogState) {
+      void recalc() => setDialogState(() {});
+
+      fraisLivraisonCtrl.removeListener(recalc);
+      fraisCollecteCtrl.removeListener(recalc);
+      commissionVenteCtrl.removeListener(recalc);
+      fraisLivraisonCtrl.addListener(recalc);
+      fraisCollecteCtrl.addListener(recalc);
+      commissionVenteCtrl.addListener(recalc);
+
+      return AlertDialog(
+        title: const Row(children: [
+          Icon(Icons.edit, color: CorexTheme.primaryGreen),
+          SizedBox(width: 8),
+          Text('Modifier les frais'),
+        ]),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.colis.isPaye)
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.orange.shade300),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(
+                      'Colis déjà payé. Une transaction d\'ajustement sera créée en caisse.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+                    )),
+                  ]),
+                ),
+              TextField(
+                controller: fraisLivraisonCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Frais de livraison (FCFA)',
+                  prefixIcon: const Icon(Icons.local_shipping),
+                  labelStyle: TextStyle(color: Colors.green.shade700),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: fraisCollecteCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Montant collecté vendeur (FCFA)',
+                  prefixIcon: const Icon(Icons.swap_horiz),
+                  labelStyle: TextStyle(color: Colors.orange.shade700),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: commissionVenteCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Commission vente (FCFA)',
+                  prefixIcon: const Icon(Icons.percent),
+                  labelStyle: TextStyle(color: Colors.purple.shade700),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Nouveau total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text('${calcTotal().toStringAsFixed(0)} FCFA', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: CorexTheme.primaryGreen)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Get.back();
+              await _appliquerModificationFrais(
+                fraisLivraison: double.tryParse(fraisLivraisonCtrl.text) ?? 0,
+                fraisCollecte: double.tryParse(fraisCollecteCtrl.text) ?? 0,
+                commissionVente: double.tryParse(commissionVenteCtrl.text) ?? 0,
+              );
+            },
+            icon: const Icon(Icons.check),
+            label: const Text('Appliquer'),
+            style: ElevatedButton.styleFrom(backgroundColor: CorexTheme.primaryGreen, foregroundColor: Colors.white),
+          ),
+        ],
+      );
+    }));
+  }
+
+  Future<void> _appliquerModificationFrais({
+    required double fraisLivraison,
+    required double fraisCollecte,
+    required double commissionVente,
+  }) async {
+    _isProcessing.value = true;
+    try {
+      final colisService = Get.find<ColisService>();
+      final authController = Get.find<AuthController>();
+      final user = authController.currentUser.value!;
+      final nouveauTotal = fraisLivraison + fraisCollecte + commissionVente;
+
+      await colisService.updateColis(widget.colis.id, {
+        'fraisLivraison': fraisLivraison,
+        'fraisCollecte': fraisCollecte,
+        'commissionVente': commissionVente,
+        'montantTarif': nouveauTotal,
+      });
+
+      // Si déjà payé, gérer selon la direction du changement
+      if (widget.colis.isPaye) {
+        final diff = nouveauTotal - widget.colis.montantTarif;
+
+        if (diff > 0) {
+          // Montant augmenté → marquer comme non payé (reste à payer)
+          await colisService.updateColis(widget.colis.id, {
+            'isPaye': false,
+            'datePaiement': null,
+          });
+        } else if (diff < 0) {
+          // Montant diminué → ajustement en caisse (remboursement)
+          final ancienCorex = widget.colis.montantTarif - widget.colis.fraisCollecte;
+          final nouveauCorex = nouveauTotal - fraisCollecte;
+          final diffCorex = nouveauCorex - ancienCorex;
+          if (diffCorex < 0) {
+            if (!Get.isRegistered<TransactionService>()) {
+              Get.put(TransactionService(), permanent: true);
+            }
+            final transaction = TransactionModel(
+              id: const Uuid().v4(),
+              agenceId: user.agenceId!,
+              type: 'depense',
+              montant: diffCorex.abs(),
+              date: DateTime.now(),
+              categorieRecette: null,
+              description: 'Ajustement frais colis ${widget.colis.numeroSuivi} (${diffCorex.toStringAsFixed(0)} FCFA)',
+              reference: widget.colis.numeroSuivi,
+              userId: user.id,
+            );
+            await Get.find<TransactionService>().createTransaction(transaction);
+          }
+        }
+      }
+
+      Get.snackbar('Succès', 'Frais mis à jour avec succès', backgroundColor: CorexTheme.primaryGreen, colorText: Colors.white);
+
+      // Recharger le colis et rafraîchir l'écran
+      if (Get.isRegistered<ColisController>()) {
+        await Get.find<ColisController>().loadColis();
+      }
+      final colisUpdated = await colisService.getColisById(widget.colis.id);
+      _isProcessing.value = false;
+      if (colisUpdated != null) {
+        Get.off(() => ColisDetailsScreen(colis: colisUpdated));
+      } else {
+        Get.back();
+      }
+    } catch (e) {
+      Get.snackbar('Erreur', 'Impossible de modifier les frais: $e', backgroundColor: Colors.red, colorText: Colors.white);
+    } finally {
+      _isProcessing.value = false;
     }
   }
 }

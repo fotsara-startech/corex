@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:corex_shared/controllers/transaction_controller.dart';
 import 'package:corex_shared/controllers/auth_controller.dart';
+import 'package:corex_shared/services/transaction_service.dart';
 import 'package:corex_shared/services/agence_service.dart';
 import 'package:intl/intl.dart';
 import 'recette_form_screen.dart';
@@ -16,20 +17,55 @@ class CaisseDashboardScreen extends StatefulWidget {
 }
 
 class _CaisseDashboardScreenState extends State<CaisseDashboardScreen> {
-  final transactionController = Get.find<TransactionController>();
-  final authController = Get.find<AuthController>();
-  final agenceService = Get.find<AgenceService>();
+  late final TransactionController transactionController;
+  late final AuthController authController;
+  late final AgenceService agenceService;
   final currencyFormat = NumberFormat.currency(locale: 'fr_FR', symbol: 'FCFA', decimalDigits: 0);
   final RxString nomAgence = 'Chargement...'.obs;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialiser les services et controllers nécessaires
+    _initializeServices();
+    
     // Recharger les transactions à chaque fois qu'on arrive sur cet écran
     WidgetsBinding.instance.addPostFrameCallback((_) {
       transactionController.loadTransactions();
       _loadAgenceName();
     });
+  }
+  
+  void _initializeServices() {
+    // Vérifier et initialiser TransactionService
+    if (!Get.isRegistered<TransactionService>()) {
+      print('⚠️ [CAISSE] TransactionService non trouvé, initialisation...');
+      Get.put(TransactionService(), permanent: true);
+    }
+    
+    // Vérifier et initialiser TransactionController
+    if (!Get.isRegistered<TransactionController>()) {
+      print('⚠️ [CAISSE] TransactionController non trouvé, initialisation...');
+      Get.put(TransactionController(), permanent: true);
+    }
+    
+    // Vérifier et initialiser AuthController
+    if (!Get.isRegistered<AuthController>()) {
+      print('⚠️ [CAISSE] AuthController non trouvé, initialisation...');
+      Get.put(AuthController(), permanent: true);
+    }
+    
+    // Vérifier et initialiser AgenceService
+    if (!Get.isRegistered<AgenceService>()) {
+      print('⚠️ [CAISSE] AgenceService non trouvé, initialisation...');
+      Get.put(AgenceService(), permanent: true);
+    }
+    
+    // Récupérer les instances
+    transactionController = Get.find<TransactionController>();
+    authController = Get.find<AuthController>();
+    agenceService = Get.find<AgenceService>();
   }
 
   Future<void> _loadAgenceName() async {

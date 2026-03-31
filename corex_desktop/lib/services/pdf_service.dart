@@ -53,7 +53,8 @@ class PdfService {
               // Détails du colis
               _buildSection('DÉTAILS DU COLIS', [
                 _buildInfoLine('Contenu', colis.contenu),
-                _buildInfoLine('Poids', '${colis.poids} kg'),
+                if (colis.poids != null) _buildInfoLine('Poids', '${colis.poids} kg'),
+                if (colis.valeurDeclaree != null) _buildInfoLine('Valeur déclarée', '${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA'),
                 if (colis.dimensions != null) _buildInfoLine('Dimensions', colis.dimensions!),
                 _buildInfoLine('Mode de livraison', _getModeLivraisonLabel(colis.modeLivraison)),
               ]),
@@ -183,7 +184,8 @@ class PdfService {
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         _buildDetailBox('Contenu', colis.contenu),
-                        _buildDetailBox('Poids', '${colis.poids} kg'),
+                        if (colis.poids != null) _buildDetailBox('Poids', '${colis.poids} kg'),
+                        if (colis.valeurDeclaree != null) _buildDetailBox('Valeur', '${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA'),
                         _buildDetailBox('Tarif', '${colis.montantTarif} FCFA'),
                       ],
                     ),

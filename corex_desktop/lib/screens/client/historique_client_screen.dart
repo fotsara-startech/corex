@@ -392,12 +392,20 @@ class _HistoriqueClientScreenState extends State<HistoriqueClientScreen> with Si
               Icons.attach_money,
               color: Colors.green,
             ),
-            if (colis.poids > 0) ...[
+            if (colis.poids != null && colis.poids! > 0) ...[
               const SizedBox(height: 8),
               _buildDetailRow(
                 'Poids',
-                '${colis.poids.toStringAsFixed(1)} kg',
+                '${colis.poids!.toStringAsFixed(1)} kg',
                 Icons.scale,
+              ),
+            ],
+            if (colis.valeurDeclaree != null) ...[
+              const SizedBox(height: 8),
+              _buildDetailRow(
+                'Valeur déclarée',
+                '${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA',
+                Icons.monetization_on,
               ),
             ],
           ],

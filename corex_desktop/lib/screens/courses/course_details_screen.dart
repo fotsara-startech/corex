@@ -15,23 +15,67 @@ class CourseDetailsScreen extends StatefulWidget {
 }
 
 class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
-  final CourseService _courseService = Get.find<CourseService>();
+  // Service récupéré de manière lazy
+  CourseService get _courseService => Get.find<CourseService>();
+
   CourseModel? _course;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCourse();
+    _ensureServiceAndLoadCourse();
+  }
+
+  Future<void> _ensureServiceAndLoadCourse() async {
+    try {
+      // Vérifier que le service est disponible
+      if (!Get.isRegistered<CourseService>()) {
+        Get.put(CourseService(), permanent: true);
+      }
+
+      // Attendre un peu pour s'assurer que tout est prêt
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      await _loadCourse();
+    } catch (e) {
+      print('❌ [COURSE_DETAILS] Erreur initialisation: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Get.snackbar(
+          'Erreur',
+          'Impossible d\'initialiser le service: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+      }
+    }
   }
 
   Future<void> _loadCourse() async {
+    if (!mounted) return;
+
     setState(() => _isLoading = true);
-    final course = await _courseService.getCourseById(widget.courseId);
-    setState(() {
-      _course = course;
-      _isLoading = false;
-    });
+    try {
+      final course = await _courseService.getCourseById(widget.courseId);
+      if (mounted) {
+        setState(() {
+          _course = course;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ [COURSE_DETAILS] Erreur chargement: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Get.snackbar(
+          'Erreur',
+          'Impossible de charger la course: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+      }
+    }
   }
 
   Color _getStatutColor(String statut) {

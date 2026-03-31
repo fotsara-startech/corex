@@ -203,7 +203,14 @@ class _DetailsLivraisonScreenState extends State<DetailsLivraisonScreen> {
             const SizedBox(height: 12),
             _buildInfoRow(Icons.category, 'Contenu', colis.contenu),
             const SizedBox(height: 12),
-            _buildInfoRow(Icons.scale, 'Poids', '${colis.poids} kg'),
+            if (colis.poids != null) ...[
+              _buildInfoRow(Icons.scale, 'Poids', '${colis.poids} kg'),
+              const SizedBox(height: 12),
+            ],
+            if (colis.valeurDeclaree != null) ...[
+              _buildInfoRow(Icons.monetization_on, 'Valeur déclarée', '${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA'),
+              const SizedBox(height: 12),
+            ],
             if (colis.dimensions != null) ...[
               const SizedBox(height: 12),
               _buildInfoRow(

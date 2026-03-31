@@ -86,7 +86,7 @@ class _CreateDepotScreenState extends State<CreateDepotScreen> {
       updatedAt: DateTime.now(),
     );
 
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     final success = await controller.createDepot(depot);
 
     setState(() => _isLoading = false);

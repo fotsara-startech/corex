@@ -13,20 +13,26 @@ class ClientsStockeursScreen extends StatefulWidget {
 }
 
 class _ClientsStockeursScreenState extends State<ClientsStockeursScreen> {
+  late final StockageController controller;
+
   @override
   void initState() {
     super.initState();
+    // Initialiser ou récupérer le controller
+    if (!Get.isRegistered<StockageController>()) {
+      controller = Get.put(StockageController(), permanent: true);
+    } else {
+      controller = Get.find<StockageController>();
+    }
+
     // Recharger les clients à chaque fois que l'écran est affiché
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final controller = Get.find<StockageController>();
       controller.loadClientsStockeurs();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Clients Stockeurs'),
@@ -108,7 +114,8 @@ class _ClientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    // Récupérer le controller de manière sécurisée
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),

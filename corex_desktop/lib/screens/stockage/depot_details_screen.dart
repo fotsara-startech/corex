@@ -3,12 +3,15 @@ import 'package:get/get.dart';
 import 'package:corex_shared/controllers/stockage_controller.dart';
 import 'package:corex_shared/models/depot_model.dart';
 import 'package:corex_shared/models/mouvement_stock_model.dart';
+import 'package:corex_shared/models/client_model.dart';
 import 'package:intl/intl.dart';
+import '../agent/nouvelle_collecte_screen.dart';
 
 class DepotDetailsScreen extends StatefulWidget {
   final DepotModel depot;
+  final ClientModel? client; // Client stockeur optionnel pour le retrait via collecte
 
-  const DepotDetailsScreen({Key? key, required this.depot}) : super(key: key);
+  const DepotDetailsScreen({Key? key, required this.depot, this.client}) : super(key: key);
 
   @override
   State<DepotDetailsScreen> createState() => _DepotDetailsScreenState();
@@ -18,23 +21,29 @@ class _DepotDetailsScreenState extends State<DepotDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     controller.selectDepot(widget.depot);
     controller.loadMouvementsByDepot(widget.depot.id);
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Détails du Dépôt'),
         actions: [
+          // Retrait via collecte
+          IconButton(
+            icon: const Icon(Icons.local_shipping),
+            onPressed: () => _showRetraitViaCollecteDialog(context),
+            tooltip: 'Retrait via collecte',
+          ),
           IconButton(
             icon: const Icon(Icons.remove_circle),
             onPressed: () => _showRetraitDialog(context),
-            tooltip: 'Retrait',
+            tooltip: 'Retrait direct',
           ),
         ],
       ),
@@ -128,8 +137,62 @@ class _DepotDetailsScreenState extends State<DepotDetailsScreen> {
     );
   }
 
+  void _showRetraitViaCollecteDialog(BuildContext context) {
+    if (widget.client == null) {
+      Get.snackbar('Information', 'Informations client non disponibles pour ce dépôt', snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
+    final currentDepot = controller.selectedDepot.value ?? widget.depot;
+    final client = widget.client!;
+
+    // D'abord sélectionner les produits à retirer, puis lancer la collecte
+    showDialog(
+      context: context,
+      builder: (context) => _RetraitDialog(
+        depot: currentDepot,
+        viaCollecte: true,
+        onProduitsSelectionnes: (produits, notes) async {
+          // Calculer contenu et valeur déclarée depuis les produits du dépôt
+          final contenu = produits.map((p) => '${p.nom} (${p.quantite.toStringAsFixed(0)} ${p.unite})').join(', ');
+
+          double valeurDeclaree = 0;
+          for (final p in produits) {
+            final produitDepot = currentDepot.produits.firstWhereOrNull((d) => d.nom == p.nom);
+            if (produitDepot?.tarifUnitaire != null) {
+              valeurDeclaree += produitDepot!.tarifUnitaire! * p.quantite;
+            }
+          }
+
+          Get.to(() => NouvelleCollecteScreen(
+                expediteurPreRempli: client,
+                contenuPreRempli: contenu,
+                valeurDeclareePreRemplie: valeurDeclaree > 0 ? valeurDeclaree : null,
+                onCollecteCreee: (colisId) async {
+                  // Créer le mouvement de stock automatiquement
+                  final success = await controller.createRetrait(
+                    currentDepot.id,
+                    currentDepot.clientId,
+                    produits,
+                    notes.isEmpty ? 'Retrait via collecte $colisId' : '$notes (collecte $colisId)',
+                  );
+                  if (success) {
+                    Get.snackbar(
+                      'Stock mis à jour',
+                      'Mouvement de retrait créé automatiquement',
+                      backgroundColor: const Color(0xFF4CAF50),
+                      colorText: Colors.white,
+                    );
+                  }
+                },
+              ));
+        },
+      ),
+    );
+  }
+
   void _showRetraitDialog(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     final currentDepot = controller.selectedDepot.value ?? widget.depot;
 
     showDialog(
@@ -255,8 +318,14 @@ class _MouvementTile extends StatelessWidget {
 
 class _RetraitDialog extends StatefulWidget {
   final DepotModel depot;
+  final bool viaCollecte;
+  final void Function(List<ProduitMouvement> produits, String notes)? onProduitsSelectionnes;
 
-  const _RetraitDialog({required this.depot});
+  const _RetraitDialog({
+    required this.depot,
+    this.viaCollecte = false,
+    this.onProduitsSelectionnes,
+  });
 
   @override
   State<_RetraitDialog> createState() => _RetraitDialogState();
@@ -279,11 +348,7 @@ class _RetraitDialogState extends State<_RetraitDialog> {
 
     final produitsRetrait = _quantitesRetrait.entries.where((e) => e.value > 0).map((e) {
       final produit = widget.depot.produits.firstWhere((p) => p.nom == e.key);
-      return ProduitMouvement(
-        nom: e.key,
-        quantite: e.value,
-        unite: produit.unite,
-      );
+      return ProduitMouvement(nom: e.key, quantite: e.value, unite: produit.unite);
     }).toList();
 
     if (produitsRetrait.isEmpty) {
@@ -291,14 +356,23 @@ class _RetraitDialogState extends State<_RetraitDialog> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    final notes = _notesController.text.trim();
 
-    final controller = Get.find<StockageController>();
+    // Mode "via collecte" : passer les produits au callback sans créer le mouvement ici
+    if (widget.viaCollecte && widget.onProduitsSelectionnes != null) {
+      Get.back();
+      widget.onProduitsSelectionnes!(produitsRetrait, notes);
+      return;
+    }
+
+    // Mode direct : créer le mouvement immédiatement
+    setState(() => _isLoading = true);
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     final success = await controller.createRetrait(
       widget.depot.id,
       widget.depot.clientId,
       produitsRetrait,
-      _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      notes.isEmpty ? null : notes,
     );
 
     setState(() => _isLoading = false);
@@ -311,7 +385,7 @@ class _RetraitDialogState extends State<_RetraitDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Retrait de produits'),
+      title: Text(widget.viaCollecte ? 'Retrait via collecte' : 'Retrait de produits'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -384,7 +458,7 @@ class _RetraitDialogState extends State<_RetraitDialog> {
                   width: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Enregistrer'),
+              : Text(widget.viaCollecte ? 'Continuer vers collecte' : 'Enregistrer'),
         ),
       ],
     );

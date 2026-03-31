@@ -41,9 +41,7 @@ class _CreerRetourScreenState extends State<CreerRetourScreen> {
     if (_formKey.currentState!.validate()) {
       final success = await _retourController.creerRetour(
         _retourController.selectedColis.value!,
-        commentaire: _commentaireController.text.trim().isEmpty 
-            ? null 
-            : _commentaireController.text.trim(),
+        commentaire: _commentaireController.text.trim().isEmpty ? null : _commentaireController.text.trim(),
       );
 
       if (success) {
@@ -159,7 +157,7 @@ class _CreerRetourScreenState extends State<CreerRetourScreen> {
                           const Divider(height: 24),
                           _buildColisDetails(_retourController.selectedColis.value!),
                           const SizedBox(height: 24),
-                          
+
                           // Commentaire optionnel
                           TextFormField(
                             controller: _commentaireController,
@@ -172,7 +170,7 @@ class _CreerRetourScreenState extends State<CreerRetourScreen> {
                             maxLines: 3,
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // Bouton de création
                           SizedBox(
                             width: double.infinity,
@@ -229,7 +227,8 @@ class _CreerRetourScreenState extends State<CreerRetourScreen> {
         ),
         const SizedBox(height: 8),
         _buildDetailRow('Contenu', colis.contenu),
-        _buildDetailRow('Poids', '${colis.poids} kg'),
+        if (colis.poids != null) _buildDetailRow('Poids', '${colis.poids} kg'),
+        if (colis.valeurDeclaree != null) _buildDetailRow('Valeur déclarée', '${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA'),
         _buildDetailRow('Tarif', '${colis.montantTarif} FCFA'),
       ],
     );

@@ -16,9 +16,28 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialiser le controller
+    // Initialiser les services nécessaires
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    // S'assurer que AuthController est disponible
+    if (!Get.isRegistered<AuthController>()) {
+      Get.put(AuthController(), permanent: true);
+    }
+
+    // S'assurer que ClientService est disponible
+    if (!Get.isRegistered<ClientService>()) {
+      Get.put(ClientService(), permanent: true);
+    }
+
+    // Initialiser le ClientController
     if (!Get.isRegistered<ClientController>()) {
-      Get.put(ClientController());
+      Get.put(ClientController(), permanent: true);
+    } else {
+      // Si le controller existe déjà, recharger les clients
+      final clientController = Get.find<ClientController>();
+      await clientController.loadClients();
     }
   }
 
@@ -31,6 +50,14 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
   @override
   Widget build(BuildContext context) {
     final clientController = Get.find<ClientController>();
+
+    // Recharger les clients à chaque fois que la page est construite
+    // (par exemple quand on revient sur cette page)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !clientController.isLoading.value) {
+        clientController.loadClients();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(

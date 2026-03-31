@@ -14,7 +14,8 @@ class DepotClientScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    // Initialiser ou récupérer le controller de manière sécurisée
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     controller.loadDepotsByClient(client.id);
     controller.loadFacturesByClient(client.id);
 
@@ -33,7 +34,7 @@ class DepotClientScreen extends StatelessWidget {
         children: [
           // Informations client
           _ClientInfoCard(client: client),
-          
+
           // Onglets
           Expanded(
             child: DefaultTabController(
@@ -73,7 +74,7 @@ class _ClientInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -133,7 +134,7 @@ class _DepotsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
 
     return Obx(() {
       final depots = controller.depotsList.where((d) => d.clientId == client.id).toList();
@@ -162,7 +163,7 @@ class _DepotsTab extends StatelessWidget {
         itemCount: depots.length,
         itemBuilder: (context, index) {
           final depot = depots[index];
-          return _DepotCard(depot: depot);
+          return _DepotCard(depot: depot, client: client);
         },
       );
     });
@@ -171,8 +172,9 @@ class _DepotsTab extends StatelessWidget {
 
 class _DepotCard extends StatelessWidget {
   final DepotModel depot;
+  final ClientModel client;
 
-  const _DepotCard({required this.depot});
+  const _DepotCard({required this.depot, required this.client});
 
   @override
   Widget build(BuildContext context) {
@@ -210,9 +212,9 @@ class _DepotCard extends StatelessWidget {
           backgroundColor: isActif ? Colors.green[100] : Colors.grey[300],
         ),
         onTap: () {
-          final controller = Get.find<StockageController>();
+          final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
           controller.selectDepot(depot);
-          Get.to(() => DepotDetailsScreen(depot: depot));
+          Get.to(() => DepotDetailsScreen(depot: depot, client: client));
         },
       ),
     );
@@ -226,7 +228,7 @@ class _MouvementsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     controller.loadMouvementsByClient(client.id);
 
     return Obx(() {
@@ -288,7 +290,7 @@ class _FacturesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
 
     return Obx(() {
       final factures = controller.facturesList.where((f) => f.clientId == client.id).toList();

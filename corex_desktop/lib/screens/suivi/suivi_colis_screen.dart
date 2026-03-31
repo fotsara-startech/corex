@@ -71,6 +71,8 @@ class SuiviColisScreen extends StatelessWidget {
               children: [
                 _buildStatutFilter(controller),
                 const SizedBox(width: 16),
+                _buildPaiementFilter(controller),
+                const SizedBox(width: 16),
                 _buildRetoursSwitch(controller),
                 const SizedBox(width: 16),
                 _buildDateFilter(controller),
@@ -149,6 +151,59 @@ class SuiviColisScreen extends StatelessWidget {
             onChanged: (value) {
               if (value != null) {
                 controller.selectedStatutFilter.value = value;
+              }
+            },
+          ),
+        ));
+  }
+
+  Widget _buildPaiementFilter(SuiviController controller) {
+    return Obx(() => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: DropdownButton<String>(
+            value: controller.selectedPaiementFilter.value,
+            underline: const SizedBox(),
+            icon: const Icon(Icons.payment),
+            items: const [
+              DropdownMenuItem(
+                value: 'tous',
+                child: Row(
+                  children: [
+                    Icon(Icons.all_inclusive, size: 18, color: Colors.grey),
+                    SizedBox(width: 8),
+                    Text('Tous les paiements'),
+                  ],
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'paye',
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, size: 18, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('Payés'),
+                  ],
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'non_paye',
+                child: Row(
+                  children: [
+                    Icon(Icons.cancel, size: 18, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Non payés'),
+                  ],
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                controller.selectedPaiementFilter.value = value;
               }
             },
           ),
@@ -257,6 +312,112 @@ class SuiviColisScreen extends StatelessWidget {
       label: Text(date != null ? DateFormat('dd/MM/yyyy').format(date) : label),
       style: OutlinedButton.styleFrom(
         backgroundColor: Colors.white,
+      ),
+    );
+  }
+
+  void _showPaymentDialog(ColisModel colis, SuiviController controller) {
+    final montantAPayer = colis.resteAPayer > 0 ? colis.resteAPayer : colis.montantTarif;
+    Get.dialog(
+      AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.payment, color: Color(0xFF2E7D32)),
+            SizedBox(width: 8),
+            Text('Paiement du colis'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Numéro de suivi: ${colis.numeroSuivi}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 8),
+            _buildPaymentDetailRow('Expéditeur', colis.expediteurNom),
+            _buildPaymentDetailRow('Destinataire', colis.destinataireNom),
+            _buildPaymentDetailRow('Contenu', colis.contenu),
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 8),
+            if (colis.fraisLivraison > 0) _buildPaymentDetailRow('Frais de livraison', '${colis.fraisLivraison.toStringAsFixed(0)} FCFA'),
+            if (colis.fraisCollecte > 0) _buildPaymentDetailRow('Frais de collecte', '${colis.fraisCollecte.toStringAsFixed(0)} FCFA'),
+            if (colis.commissionVente > 0) _buildPaymentDetailRow('Commission vente', '${colis.commissionVente.toStringAsFixed(0)} FCFA'),
+            const Divider(),
+            _buildPaymentDetailRow('Total', '${colis.montantTarif.toStringAsFixed(0)} FCFA'),
+            if (colis.montantDejaPaye > 0) ...[
+              _buildPaymentDetailRow('Déjà payé', '${colis.montantDejaPaye.toStringAsFixed(0)} FCFA', color: Colors.green),
+            ],
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    colis.montantDejaPaye > 0 ? 'Reste à payer:' : 'Montant à payer:',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${montantAPayer.toStringAsFixed(0)} FCFA',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Get.back();
+              await controller.payerColis(colis, montantOverride: montantAPayer);
+            },
+            icon: const Icon(Icons.check_circle),
+            label: const Text('Confirmer le paiement'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentDetailRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: TextStyle(color: color ?? Colors.grey[600], fontSize: 13, fontWeight: color != null ? FontWeight.bold : FontWeight.normal),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: color),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -439,25 +600,66 @@ class SuiviColisScreen extends StatelessWidget {
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                   const SizedBox(width: 16),
-                  Icon(Icons.inventory_2, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${colis.poids} kg',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  ),
-                  const SizedBox(width: 16),
+                  if (colis.poids != null) ...[
+                    Icon(Icons.inventory_2, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${colis.poids} kg',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
                   Icon(Icons.payments, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    '${colis.montantTarif.toStringAsFixed(0)} FCFA',
+                    colis.isPaye
+                        ? '${colis.montantTarif.toStringAsFixed(0)} FCFA'
+                        : colis.montantDejaPaye > 0
+                            ? 'Reste: ${colis.resteAPayer.toStringAsFixed(0)} FCFA'
+                            : '${colis.montantTarif.toStringAsFixed(0)} FCFA',
                     style: TextStyle(
                       color: colis.isPaye ? Colors.green : Colors.red,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  if (!colis.isPaye) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red[100],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        colis.montantDejaPaye > 0 ? 'PARTIEL' : 'NON PAYÉ',
+                        style: TextStyle(
+                          color: Colors.red[900],
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
+              // Bouton de paiement si non payé
+              if (!colis.isPaye) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showPaymentDialog(colis, controller),
+                    icon: const Icon(Icons.payment),
+                    label: Text(colis.montantDejaPaye > 0 ? 'PAYER LE RESTE (${colis.resteAPayer.toStringAsFixed(0)} FCFA)' : 'PAYER CE COLIS'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

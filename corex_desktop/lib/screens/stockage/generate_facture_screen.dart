@@ -53,10 +53,8 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
   }
 
   double _calculateTotal() {
-    final controller = Get.find<StockageController>();
-    final depots = controller.depotsList
-        .where((d) => _selectedDepots.contains(d.id))
-        .toList();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
+    final depots = controller.depotsList.where((d) => _selectedDepots.contains(d.id)).toList();
 
     return depots.fold(0.0, (sum, depot) => sum + depot.tarifMensuel);
   }
@@ -76,7 +74,7 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
 
     setState(() => _isLoading = true);
 
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     final success = await controller.generateFactureMensuelle(
       _selectedClient!.id,
       _selectedDepots.toList(),
@@ -95,7 +93,7 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
 
     return Scaffold(
       appBar: AppBar(
@@ -210,9 +208,7 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
                       ),
                       const SizedBox(height: 8),
                       Obx(() {
-                        final depots = controller.depotsList
-                            .where((d) => d.clientId == _selectedClient!.id)
-                            .toList();
+                        final depots = controller.depotsList.where((d) => d.clientId == _selectedClient!.id).toList();
 
                         if (depots.isEmpty) {
                           return const Padding(

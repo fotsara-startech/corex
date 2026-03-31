@@ -19,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialiser le controller de manière sécurisée
     try {
       _authController = Get.find<AuthController>();
     } catch (e) {
@@ -27,18 +26,21 @@ class _LoginScreenState extends State<LoginScreen> {
       _authController = Get.put(AuthController());
     }
 
-    // Vérifier si l'utilisateur est déjà connecté après que l'interface soit prête
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkIfAlreadyAuthenticated();
+    // Écouter isAuthenticated de manière réactive — redirige dès que la session est restaurée
+    ever(_authController.isAuthenticated, (bool authenticated) {
+      if (authenticated && _authController.currentUser.value != null) {
+        print('🔄 [LOGIN] Session restaurée, redirection vers /home');
+        Get.offAllNamed('/home');
+      }
     });
-  }
 
-  void _checkIfAlreadyAuthenticated() {
-    // Si l'utilisateur est déjà authentifié, rediriger vers l'accueil
-    if (_authController.isAuthenticated.value && _authController.currentUser.value != null) {
-      print('🔄 [LOGIN] Utilisateur déjà connecté, redirection vers /home');
-      Get.offAllNamed('/home');
-    }
+    // Vérification immédiate si déjà authentifié au moment du build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_authController.isAuthenticated.value && _authController.currentUser.value != null) {
+        print('🔄 [LOGIN] Utilisateur déjà connecté, redirection vers /home');
+        Get.offAllNamed('/home');
+      }
+    });
   }
 
   @override
@@ -99,21 +101,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         // Logo responsive
                         Container(
-                          width: constraints.maxWidth < 600 ? 80 : 100,
-                          height: constraints.maxWidth < 600 ? 80 : 100,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32),
-                            borderRadius: BorderRadius.circular(constraints.maxWidth < 600 ? 40 : 50),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'COREX',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: constraints.maxWidth < 600 ? 20 : 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          width: constraints.maxWidth < 600 ? 120 : 150,
+                          height: constraints.maxWidth < 600 ? 120 : 150,
+                          padding: const EdgeInsets.all(8),
+                          child: Image.asset(
+                            'assets/img/LOGO COREX.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              // Fallback si l'image ne charge pas
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2E7D32),
+                                  borderRadius: BorderRadius.circular(constraints.maxWidth < 600 ? 60 : 75),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'COREX',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: constraints.maxWidth < 600 ? 20 : 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(height: 24),

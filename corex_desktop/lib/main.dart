@@ -153,95 +153,96 @@ Future<void> _initializeServices() async {
     }
 
     // Services de base avec gestion d'erreurs individuelle
-    final services = [
-      () => _safeInitialize('AuthService', () => Get.put(AuthService(), permanent: true)),
-      () => _safeInitialize('DemandeService', () => Get.put(DemandeService(), permanent: true)),
-      () => _safeInitialize('ColisService', () => Get.put(ColisService(), permanent: true)),
-      () => _safeInitialize('UserService', () => Get.put(UserService(), permanent: true)),
-      () => _safeInitialize('ClientService', () => Get.put(ClientService(), permanent: true)),
-      () => _safeInitialize('TransactionService', () => Get.put(TransactionService(), permanent: true)),
-      () => _safeInitialize('LivraisonService', () => Get.put(LivraisonService(), permanent: true)),
-      () => _safeInitialize('AgenceService', () => Get.put(AgenceService(), permanent: true)),
-      () => _safeInitialize('ZoneService', () => Get.put(ZoneService(), permanent: true)),
-      () => _safeInitialize('CourseService', () => Get.put(CourseService(), permanent: true)),
-      () => _safeInitialize('AgenceTransportService', () => Get.put(AgenceTransportService(), permanent: true)),
-      () => _safeInitialize('NotificationService', () => Get.put(NotificationService(), permanent: true)),
-      () => _safeInitialize('StockageService', () => Get.put(StockageService(), permanent: true)),
-      () => _safeInitialize('AlertService', () => Get.put(AlertService(), permanent: true)),
-      () => _safeInitialize('EmailService', () => Get.put(EmailService(), permanent: true)),
-    ];
-
-    for (var serviceInit in services) {
-      await serviceInit();
-    }
+    await _safeInitialize('AuthService', () async => Get.put(AuthService(), permanent: true));
+    await _safeInitialize('DemandeService', () async => Get.put(DemandeService(), permanent: true));
+    await _safeInitialize('ColisService', () async {
+      final service = ColisService();
+      Get.put(service, permanent: true);
+      print('   📦 ColisService instance créée et enregistrée');
+    });
+    await _safeInitialize('UserService', () async {
+      final service = UserService();
+      Get.put(service, permanent: true);
+      print('   👤 UserService instance créée et enregistrée');
+    });
+    await _safeInitialize('ClientService', () async => Get.put(ClientService(), permanent: true));
+    await _safeInitialize('TransactionService', () async {
+      final service = TransactionService();
+      Get.put(service, permanent: true);
+      print('   💰 TransactionService instance créée et enregistrée');
+    });
+    await _safeInitialize('LivraisonService', () async {
+      final service = LivraisonService();
+      Get.put(service, permanent: true);
+      print('   🚚 LivraisonService instance créée et enregistrée');
+    });
+    await _safeInitialize('AgenceService', () async {
+      final service = AgenceService();
+      Get.put(service, permanent: true);
+      print('   🏢 AgenceService instance créée et enregistrée');
+    });
+    await _safeInitialize('ZoneService', () async => Get.put(ZoneService(), permanent: true));
+    await _safeInitialize('CourseService', () async => Get.put(CourseService(), permanent: true));
+    await _safeInitialize('AgenceTransportService', () async => Get.put(AgenceTransportService(), permanent: true));
+    await _safeInitialize('NotificationService', () async => Get.put(NotificationService(), permanent: true));
+    await _safeInitialize('StockageService', () async => Get.put(StockageService(), permanent: true));
+    await _safeInitialize('SyncService', () async => Get.put(SyncService(), permanent: true));
+    await _safeInitialize('AlertService', () async => Get.put(AlertService(), permanent: true));
+    await _safeInitialize('EmailService', () async => Get.put(EmailService(), permanent: true));
 
     // Attendre un peu avant d'initialiser les controllers
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 1000)); // Augmenté de 500ms à 1000ms
 
     // Controllers avec gestion d'erreurs individuelle
-    final controllers = [
-      () => _safeInitialize('AuthController', () => Get.put(AuthController(), permanent: true)),
-      () => _safeInitialize('DemandeController', () => Get.put(DemandeController(), permanent: true)),
-      () => _safeInitialize('TransactionController', () => Get.put(TransactionController(), permanent: true)),
-      () => _safeInitialize('ColisController', () => Get.put(ColisController(), permanent: true)),
-      () => _safeInitialize('ClientController', () => Get.put(ClientController(), permanent: true)),
-      () => _safeInitialize('UserController', () => Get.put(UserController(), permanent: true)),
-      () => _safeInitialize('LivraisonController', () => Get.put(LivraisonController(), permanent: true)),
-      () => _safeInitialize('ZoneController', () => Get.put(ZoneController(), permanent: true)),
-      () => _safeInitialize('AgenceController', () => Get.put(AgenceController(), permanent: true)),
-      () => _safeInitialize('CourseController', () => Get.put(CourseController(), permanent: true)),
-      () => _safeInitialize('AgenceTransportController', () => Get.put(AgenceTransportController(), permanent: true)),
-      () => _safeInitialize('DashboardController', () => Get.put(DashboardController(), permanent: true)),
-      () => _safeInitialize('NotificationController', () => Get.put(NotificationController(), permanent: true)),
-      () => _safeInitialize('PdgDashboardController', () => Get.put(PdgDashboardController(), permanent: true)),
-      () => _safeInitialize('RetourController', () => Get.put(RetourController(), permanent: true)),
-      () => _safeInitialize('StockageController', () => Get.put(StockageController(), permanent: true)),
-      () => _safeInitialize('SuiviController', () => Get.put(SuiviController(), permanent: true)),
-    ];
-
-    for (var controllerInit in controllers) {
-      await controllerInit();
-    }
+    await _safeInitialize('AuthController', () async => Get.put(AuthController(), permanent: true));
+    await _safeInitialize('DemandeController', () async => Get.put(DemandeController(), permanent: true));
+    await _safeInitialize('TransactionController', () async => Get.put(TransactionController(), permanent: true));
+    await _safeInitialize('ColisController', () async => Get.put(ColisController(), permanent: true));
+    await _safeInitialize('ClientController', () async => Get.put(ClientController(), permanent: true));
+    await _safeInitialize('UserController', () async => Get.put(UserController(), permanent: true));
+    await _safeInitialize('LivraisonController', () async => Get.put(LivraisonController(), permanent: true));
+    await _safeInitialize('ZoneController', () async => Get.put(ZoneController(), permanent: true));
+    await _safeInitialize('AgenceController', () async => Get.put(AgenceController(), permanent: true));
+    await _safeInitialize('CourseController', () async => Get.put(CourseController(), permanent: true));
+    await _safeInitialize('AgenceTransportController', () async => Get.put(AgenceTransportController(), permanent: true));
+    await _safeInitialize('DashboardController', () async => Get.put(DashboardController(), permanent: true));
+    await _safeInitialize('NotificationController', () async => Get.put(NotificationController(), permanent: true));
+    await _safeInitialize('PdgDashboardController', () async => Get.put(PdgDashboardController(), permanent: true));
+    await _safeInitialize('RetourController', () async => Get.put(RetourController(), permanent: true));
+    await _safeInitialize('StockageController', () async => Get.put(StockageController(), permanent: true));
+    await _safeInitialize('SuiviController', () async => Get.put(SuiviController(), permanent: true));
 
     print('✅ [COREX] Services et controllers initialisés avec succès');
+
+    // Vérifier que les services essentiels sont bien enregistrés
+    print('🔍 [COREX] Vérification des services essentiels...');
+    print('   - ColisService: ${Get.isRegistered<ColisService>() ? "✅" : "❌"}');
+    print('   - TransactionService: ${Get.isRegistered<TransactionService>() ? "✅" : "❌"}');
+    print('   - LivraisonService: ${Get.isRegistered<LivraisonService>() ? "✅" : "❌"}');
+    print('   - UserService: ${Get.isRegistered<UserService>() ? "✅" : "❌"}');
+    print('   - AgenceService: ${Get.isRegistered<AgenceService>() ? "✅" : "❌"}');
+    print('   - PdgDashboardController: ${Get.isRegistered<PdgDashboardController>() ? "✅" : "❌"}');
   } catch (e) {
     print('❌ [COREX] Erreur initialisation services: $e');
-    // Ne pas bloquer l'application, certains services peuvent être rtrtrtrtr
+    // Ne pas bloquer l'application, certains services peuvent être indisponibles
   }
 }
 
 /// Initialise un service/controller de manière sécurisée
-Future<void> _safeInitialize(String name, Function initFunction) async {
+Future<void> _safeInitialize(String name, Future<void> Function() initFunction) async {
   try {
+    print('🔄 [COREX] Initialisation de $name...');
     await initFunction();
-    print('✅ [COREX] $name initialisé');
-  } catch (e) {
-    print('⚠️ [COREX] Erreur $name: $e');
-    // Continuer même en cas d'erreur
-  }
-}
 
-/// Initialisation de secours pour les contrôleurs manquants
-void _initializeFallbackControllers() {
-  print('🔄 [COREX] Initialisation de secours des contrôleurs...');
+    // Vérifier que le service est bien enregistré
+    await Future.delayed(const Duration(milliseconds: 100));
 
-  final fallbackControllers = [
-    () => !Get.isRegistered<CourseController>() ? Get.put(CourseController(), permanent: true) : null,
-    () => !Get.isRegistered<AgenceTransportController>() ? Get.put(AgenceTransportController(), permanent: true) : null,
-    () => !Get.isRegistered<DashboardController>() ? Get.put(DashboardController(), permanent: true) : null,
-    () => !Get.isRegistered<NotificationController>() ? Get.put(NotificationController(), permanent: true) : null,
-    () => !Get.isRegistered<PdgDashboardController>() ? Get.put(PdgDashboardController(), permanent: true) : null,
-    () => !Get.isRegistered<RetourController>() ? Get.put(RetourController(), permanent: true) : null,
-    () => !Get.isRegistered<StockageController>() ? Get.put(StockageController(), permanent: true) : null,
-    () => !Get.isRegistered<SuiviController>() ? Get.put(SuiviController(), permanent: true) : null,
-  ];
-
-  for (var controllerInit in fallbackControllers) {
-    try {
-      controllerInit();
-    } catch (e) {
-      print('⚠️ [COREX] Erreur controller de secours: $e');
-    }
+    print('✅ [COREX] $name initialisé avec succès');
+  } catch (e, stackTrace) {
+    print('❌ [COREX] ERREUR CRITIQUE lors de l\'initialisation de $name:');
+    print('   Message: $e');
+    print('   Stack: ${stackTrace.toString().split('\n').take(5).join('\n   ')}');
+    // Continuer même en cas d'erreur mais afficher clairement l'erreur
   }
 }
 
@@ -280,49 +281,6 @@ Future<void> _ensureEssentialServices() async {
     for (var controllerInit in essentialControllers) {
       try {
         await controllerInit();
-      } catch (e) {
-        print('⚠️ [COREX] Erreur controller essentiel: $e');
-      }
-    }
-
-    print('✅ [COREX] Services essentiels vérifiés');
-  } catch (e) {
-    print('❌ [COREX] Erreur vérification services essentiels: $e');
-  }
-}
-
-/// Initialise les services essentiels si nécessaire
-void _initializeEssentialServicesIfNeeded() {
-  try {
-    print('🔍 [COREX] Vérification des services essentiels...');
-
-    // Vérifier et initialiser les services essentiels
-    final essentialServices = [
-      () => !Get.isRegistered<AuthService>() ? Get.put(AuthService(), permanent: true) : null,
-      () => !Get.isRegistered<UserService>() ? Get.put(UserService(), permanent: true) : null,
-      () => !Get.isRegistered<ClientService>() ? Get.put(ClientService(), permanent: true) : null,
-      () => !Get.isRegistered<CourseService>() ? Get.put(CourseService(), permanent: true) : null,
-    ];
-
-    for (var serviceInit in essentialServices) {
-      try {
-        serviceInit();
-      } catch (e) {
-        print('⚠️ [COREX] Erreur service essentiel: $e');
-      }
-    }
-
-    // Vérifier et initialiser les contrôleurs essentiels
-    final essentialControllers = [
-      () => !Get.isRegistered<AuthController>() ? Get.put(AuthController(), permanent: true) : null,
-      () => !Get.isRegistered<UserController>() ? Get.put(UserController(), permanent: true) : null,
-      () => !Get.isRegistered<ClientController>() ? Get.put(ClientController(), permanent: true) : null,
-      () => !Get.isRegistered<CourseController>() ? Get.put(CourseController(), permanent: true) : null,
-    ];
-
-    for (var controllerInit in essentialControllers) {
-      try {
-        controllerInit();
       } catch (e) {
         print('⚠️ [COREX] Erreur controller essentiel: $e');
       }

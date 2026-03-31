@@ -5,7 +5,7 @@ import '../users/users_list_screen.dart';
 import '../agences/agences_list_screen.dart';
 import '../zones/zones_list_screen.dart';
 import '../agences_transport/agences_transport_list_screen.dart';
-import '../colis/colis_collecte_screen.dart';
+import '../agent/nouvelle_collecte_screen.dart';
 import '../clients/clients_list_screen.dart';
 import '../agent/enregistrement_colis_screen.dart';
 import '../suivi/suivi_colis_screen.dart';
@@ -19,9 +19,18 @@ import '../courses/suivi_courses_screen.dart';
 import '../coursier/mes_courses_screen.dart';
 import '../pdg/pdg_dashboard_screen.dart';
 import '../../widgets/connection_indicator.dart';
+import '../../widgets/corex_logo.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  // Helper pour navigation avec délai après fermeture du drawer
+  void _navigateAfterDrawerClose(Function navigation) {
+    Get.back();
+    Future.delayed(const Duration(milliseconds: 100), () {
+      navigation();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +38,11 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('COREX Desktop'),
+        title: const CorexLogo(
+          height: 40,
+          showText: true,
+          textColor: Colors.white,
+        ),
         actions: [
           const ConnectionIndicator(),
           const SizedBox(width: 16),
@@ -152,10 +165,9 @@ class HomeScreen extends StatelessWidget {
                                 color: Color(0xFF6C5CE7),
                               ),
                             ),
-                            onTap: () {
-                              Get.back();
+                            onTap: () => _navigateAfterDrawerClose(() {
                               Get.toNamed('/pdg/dashboard');
-                            },
+                            }),
                           ),
                         // Validation des demandes clients - Nouveau
                         if (user?.role == 'gestionnaire' || user?.role == 'admin')
@@ -168,50 +180,44 @@ class HomeScreen extends StatelessWidget {
                                 color: Color(0xFF2E7D32),
                               ),
                             ),
-                            onTap: () {
-                              Get.back();
+                            onTap: () => _navigateAfterDrawerClose(() {
                               Get.toNamed('/demandes');
-                            },
+                            }),
                           ),
                         ListTile(
                           leading: const Icon(Icons.people),
                           title: const Text('Gestion des utilisateurs'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const UsersListScreen());
-                          },
+                          }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.business),
                           title: const Text('Gestion des agences'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const AgencesListScreen());
-                          },
+                          }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.map),
                           title: const Text('Zones de livraison'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const ZonesListScreen());
-                          },
+                          }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.local_shipping),
                           title: const Text('Agences de transport'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const AgencesTransportListScreen());
-                          },
+                          }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.contacts),
                           title: const Text('Clients'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const ClientsListScreen());
-                          },
+                          }),
                         ),
                         const Divider(),
                       ],
@@ -235,10 +241,9 @@ class HomeScreen extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.add_box),
                   title: const Text('Collecter un colis'),
-                  onTap: () {
-                    Get.back();
-                    Get.to(() => const ColisCollecteScreen());
-                  },
+                  onTap: () => _navigateAfterDrawerClose(() {
+                    Get.to(() => const NouvelleCollecteScreen());
+                  }),
                 ),
                 Obx(() {
                   final user = authController.currentUser.value;
@@ -246,10 +251,9 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.app_registration),
                       title: const Text('Enregistrer des colis'),
-                      onTap: () {
-                        Get.back();
+                      onTap: () => _navigateAfterDrawerClose(() {
                         Get.to(() => const EnregistrementColisScreen());
-                      },
+                      }),
                     );
                   }
                   return const SizedBox.shrink();
@@ -257,10 +261,9 @@ class HomeScreen extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.search),
                   title: const Text('Suivi des colis'),
-                  onTap: () {
-                    Get.back();
+                  onTap: () => _navigateAfterDrawerClose(() {
                     Get.to(() => const SuiviColisScreen());
-                  },
+                  }),
                 ),
                 Obx(() {
                   final user = authController.currentUser.value;
@@ -272,18 +275,16 @@ class HomeScreen extends StatelessWidget {
                         ListTile(
                           leading: const Icon(Icons.person_add),
                           title: const Text('Attribution des livraisons'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const AttributionLivraisonScreen());
-                          },
+                          }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.list_alt),
                           title: const Text('Suivi des livraisons'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const SuiviLivraisonsScreen());
-                          },
+                          }),
                         ),
                       ],
                     );
@@ -291,10 +292,9 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.delivery_dining),
                       title: const Text('Mes Livraisons'),
-                      onTap: () {
-                        Get.back();
+                      onTap: () => _navigateAfterDrawerClose(() {
                         Get.to(() => const MesLivraisonsScreen());
-                      },
+                      }),
                     );
                   }
                   return const SizedBox.shrink();
@@ -305,10 +305,9 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.attach_money),
                       title: const Text('Caisse'),
-                      onTap: () {
-                        Get.back();
+                      onTap: () => _navigateAfterDrawerClose(() {
                         Get.toNamed('/caisse');
-                      },
+                      }),
                     );
                   }
                   return const SizedBox.shrink();
@@ -321,10 +320,9 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.keyboard_return),
                       title: const Text('Retours de Colis'),
-                      onTap: () {
-                        Get.back();
+                      onTap: () => _navigateAfterDrawerClose(() {
                         Get.toNamed('/retours');
-                      },
+                      }),
                     );
                   }
                   return const SizedBox.shrink();
@@ -341,18 +339,16 @@ class HomeScreen extends StatelessWidget {
                         ListTile(
                           leading: const Icon(Icons.people),
                           title: const Text('Clients stockeurs'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const ClientsStockeursScreen());
-                          },
+                          }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.receipt_long),
                           title: const Text('Factures de stockage'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const FacturesStockageScreen());
-                          },
+                          }),
                         ),
                       ],
                     );
@@ -371,18 +367,16 @@ class HomeScreen extends StatelessWidget {
                         ListTile(
                           leading: const Icon(Icons.add),
                           title: const Text('Créer une course'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const CoursesListScreen());
-                          },
+                          }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.list_alt),
                           title: const Text('Suivi des courses'),
-                          onTap: () {
-                            Get.back();
+                          onTap: () => _navigateAfterDrawerClose(() {
                             Get.to(() => const SuiviCoursesScreen());
-                          },
+                          }),
                         ),
                       ],
                     );
@@ -390,10 +384,9 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.directions_run),
                       title: const Text('Service de Courses'),
-                      onTap: () {
-                        Get.back();
+                      onTap: () => _navigateAfterDrawerClose(() {
                         Get.to(() => const CoursesListScreen());
-                      },
+                      }),
                     );
                   } else if (user?.role == 'coursier') {
                     return ListTile(

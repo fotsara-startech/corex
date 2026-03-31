@@ -7,6 +7,7 @@ import 'package:corex_shared/models/colis_model.dart';
 import 'package:corex_shared/models/user_model.dart';
 import 'package:corex_shared/services/colis_service.dart';
 import 'package:corex_shared/services/user_service.dart';
+import 'package:corex_shared/services/livraison_service.dart';
 import 'package:intl/intl.dart';
 
 class SuiviLivraisonsScreen extends StatefulWidget {
@@ -17,10 +18,11 @@ class SuiviLivraisonsScreen extends StatefulWidget {
 }
 
 class _SuiviLivraisonsScreenState extends State<SuiviLivraisonsScreen> {
-  final LivraisonController _livraisonController = Get.find<LivraisonController>();
-  final ColisService _colisService = Get.find<ColisService>();
-  final UserService _userService = Get.find<UserService>();
-  final AuthController _authController = Get.find<AuthController>();
+  // Services et controllers - récupérés de manière lazy
+  LivraisonController get _livraisonController => Get.find<LivraisonController>();
+  ColisService get _colisService => Get.find<ColisService>();
+  UserService get _userService => Get.find<UserService>();
+  AuthController get _authController => Get.find<AuthController>();
 
   final Map<String, ColisModel> _colisMap = {};
   final Map<String, UserModel> _coursiersMap = {};
@@ -29,7 +31,41 @@ class _SuiviLivraisonsScreenState extends State<SuiviLivraisonsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _ensureServicesAndLoadData();
+  }
+
+  Future<void> _ensureServicesAndLoadData() async {
+    try {
+      // Vérifier que les services essentiels sont disponibles
+      if (!Get.isRegistered<ColisService>()) {
+        Get.put(ColisService(), permanent: true);
+      }
+      if (!Get.isRegistered<UserService>()) {
+        Get.put(UserService(), permanent: true);
+      }
+      if (!Get.isRegistered<LivraisonService>()) {
+        Get.put(LivraisonService(), permanent: true);
+      }
+      if (!Get.isRegistered<LivraisonController>()) {
+        Get.put(LivraisonController(), permanent: true);
+      }
+
+      // Attendre un peu pour s'assurer que tout est prêt
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      await _loadData();
+    } catch (e) {
+      print('❌ [SUIVI_LIVRAISONS] Erreur initialisation: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Get.snackbar(
+          'Erreur',
+          'Impossible d\'initialiser les services: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+      }
+    }
   }
 
   Future<void> _loadData() async {
@@ -248,7 +284,8 @@ class _SuiviLivraisonsScreenState extends State<SuiviLivraisonsScreen> {
                   _buildDetailRow('Téléphone', colis.destinataireTelephone),
                   _buildDetailRow('Adresse', colis.destinataireAdresse),
                   if (colis.destinataireQuartier != null) _buildDetailRow('Quartier', colis.destinataireQuartier!),
-                  _buildDetailRow('Contenu', '${colis.contenu} (${colis.poids} kg)'),
+                  _buildDetailRow('Contenu', colis.poids != null ? '${colis.contenu} (${colis.poids} kg)' : colis.contenu),
+                  if (colis.valeurDeclaree != null) _buildDetailRow('Valeur déclarée', '${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA'),
                   _buildDetailRow('Tarif', '${colis.montantTarif} FCFA'),
                 ],
                 const SizedBox(height: 16),

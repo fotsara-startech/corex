@@ -20,6 +20,7 @@ class _CreateClientStockeurScreenState extends State<CreateClientStockeurScreen>
   final _quartierController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isSearching = false;
 
   @override
   void dispose() {
@@ -31,24 +32,40 @@ class _CreateClientStockeurScreenState extends State<CreateClientStockeurScreen>
     super.dispose();
   }
 
-  Future<void> _searchByPhone() async {
-    if (_telephoneController.text.isEmpty) return;
+  Future<List<ClientModel>> _searchClients(String query) async {
+    if (query.length < 2) return [];
 
-    setState(() => _isLoading = true);
+    setState(() => _isSearching = true);
 
-    final controller = Get.find<StockageController>();
-    final client = await controller.searchClientByPhone(_telephoneController.text);
+    try {
+      final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
 
-    setState(() => _isLoading = false);
+      // Recherche multi-critères (nom, téléphone, email)
+      final clients = await controller.searchClientsMultiCriteria(query);
 
-    if (client != null) {
-      _nomController.text = client.nom;
-      _adresseController.text = client.adresse;
-      _villeController.text = client.ville;
-      _quartierController.text = client.quartier ?? '';
-      
-      Get.snackbar('Client trouvé', 'Les informations ont été remplies automatiquement');
+      setState(() => _isSearching = false);
+
+      return clients;
+    } catch (e) {
+      print('❌ [CREATE_CLIENT_STOCKEUR] Erreur recherche: $e');
+      setState(() => _isSearching = false);
+      return [];
     }
+  }
+
+  void _fillClientData(ClientModel client) {
+    _telephoneController.text = client.telephone;
+    _nomController.text = client.nom;
+    _adresseController.text = client.adresse;
+    _villeController.text = client.ville;
+    _quartierController.text = client.quartier ?? '';
+
+    Get.snackbar(
+      'Client trouvé',
+      'Les informations ont été remplies automatiquement',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
   }
 
   Future<void> _saveClient() async {
@@ -78,7 +95,7 @@ class _CreateClientStockeurScreenState extends State<CreateClientStockeurScreen>
       updatedAt: DateTime.now(),
     );
 
-    final controller = Get.find<StockageController>();
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     final success = await controller.createClientStockeur(client);
 
     setState(() => _isLoading = false);
@@ -99,33 +116,118 @@ class _CreateClientStockeurScreenState extends State<CreateClientStockeurScreen>
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Téléphone avec recherche
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _telephoneController,
-                    decoration: const InputDecoration(
-                      labelText: 'Téléphone *',
-                      prefixIcon: Icon(Icons.phone),
-                      border: OutlineInputBorder(),
+            // Info
+            Card(
+              color: Colors.blue.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Recherchez un client par son nom ou téléphone. Si le client existe déjà, ses informations seront remplies automatiquement.',
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ),
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Le téléphone est requis';
-                      }
-                      return null;
-                    },
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Téléphone avec autocomplétion
+            Autocomplete<ClientModel>(
+              optionsBuilder: (TextEditingValue textEditingValue) async {
+                if (textEditingValue.text.length < 2) {
+                  return const Iterable<ClientModel>.empty();
+                }
+                return await _searchClients(textEditingValue.text);
+              },
+              displayStringForOption: (ClientModel client) => client.telephone,
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                // Synchroniser avec notre controller
+                if (_telephoneController.text.isEmpty && controller.text.isNotEmpty) {
+                  _telephoneController.text = controller.text;
+                }
+
+                return TextFormField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    labelText: 'Téléphone ou Nom *',
+                    hintText: 'Rechercher par téléphone ou nom...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _isSearching
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                    border: const OutlineInputBorder(),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: _isLoading ? null : _searchByPhone,
-                  tooltip: 'Rechercher',
-                ),
-              ],
+                  keyboardType: TextInputType.text,
+                  onChanged: (value) {
+                    _telephoneController.text = value;
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Le téléphone est requis';
+                    }
+                    return null;
+                  },
+                );
+              },
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: MediaQuery.of(context).size.width - 32,
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final client = options.elementAt(index);
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.green.shade100,
+                              child: Icon(Icons.person, color: Colors.green.shade700),
+                            ),
+                            title: Text(
+                              client.nom,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('📞 ${client.telephone}'),
+                                Text('📍 ${client.ville}${client.quartier != null ? ', ${client.quartier}' : ''}'),
+                              ],
+                            ),
+                            onTap: () {
+                              onSelected(client);
+                              _fillClientData(client);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
+              onSelected: (ClientModel client) {
+                _fillClientData(client);
+              },
             ),
             const SizedBox(height: 16),
 
