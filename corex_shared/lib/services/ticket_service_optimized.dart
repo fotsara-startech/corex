@@ -267,8 +267,9 @@ class TicketServiceOptimized {
         </div>
         <div class="row">
             <span>Poids:</span>
-            <span>${colis.poids.toStringAsFixed(1)} kg</span>
+            <span>${colis.poids != null ? colis.poids!.toStringAsFixed(1) : 'Non pesé'} ${colis.poids != null ? 'kg' : ''}</span>
         </div>
+        ${colis.valeurDeclaree != null ? '<div class="row"><span>Valeur déclarée:</span><span>${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA</span></div>' : ''}
         ${colis.dimensions != null ? '<div class="row"><span>Dimensions:</span><span>${colis.dimensions}</span></div>' : ''}
         ${colis.commentaire != null && colis.commentaire!.isNotEmpty ? '<div class="row"><span>Commentaire:</span></div><div style="font-size: 9px; margin-top: 3px;">${colis.commentaire}</div>' : ''}
     </div>

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import '../models/user_model.dart';
@@ -19,13 +20,17 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Vérifier silencieusement s'il y a une session stockée
-    _checkStoredSession();
+    // Vérifier la session dès que le controller est prêt
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkStoredSession();
+    });
   }
 
   /// Vérifie silencieusement s'il y a une session stockée sans navigation
   Future<void> _checkStoredSession() async {
     try {
+      print('🔍 [AUTH] Vérification silencieuse de session...');
+
       // 1. Vérifier si Firebase Auth a un utilisateur connecté
       final firebaseUser = _authService.currentFirebaseUser;
 
@@ -72,16 +77,30 @@ class AuthController extends GetxController {
 
               print('✅ [AUTH] Utilisateur récupéré depuis Firestore: ${user.nomComplet} (sans navigation automatique)');
               return;
+            } else {
+              print('⚠️ [AUTH] Utilisateur non trouvé ou inactif dans Firestore');
             }
+          } else {
+            print('⚠️ [AUTH] UserService non disponible');
           }
         } catch (e) {
           print('⚠️ [AUTH] Erreur récupération Firestore: $e');
+          // Ne pas afficher de SnackBar ici car c'est une vérification silencieuse
         }
+      } else {
+        print('ℹ️ [AUTH] Aucun utilisateur Firebase connecté');
       }
 
       print('ℹ️ [AUTH] Aucune session valide trouvée - utilisateur doit se connecter');
     } catch (e) {
       print('❌ [AUTH] Erreur lors de la vérification silencieuse: $e');
+      // Ne pas afficher de SnackBar ici pour éviter les erreurs de contexte
+      // Nettoyer silencieusement en cas d'erreur
+      try {
+        await _clearStoredAuth();
+      } catch (clearError) {
+        print('❌ [AUTH] Erreur lors du nettoyage: $clearError');
+      }
     }
   }
 
@@ -230,11 +249,25 @@ class AuthController extends GetxController {
 
       return true;
     } catch (e) {
-      Get.snackbar(
-        'Erreur de connexion',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      print('❌ [AUTH] Erreur de connexion: $e');
+
+      // Vérifier si GetX est prêt avant d'afficher le SnackBar
+      try {
+        if (Get.context != null) {
+          Get.snackbar(
+            'Erreur de connexion',
+            e.toString(),
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+        } else {
+          print('⚠️ [AUTH] Contexte GetX non disponible pour afficher l\'erreur');
+        }
+      } catch (snackError) {
+        print('⚠️ [AUTH] Erreur affichage SnackBar: $snackError');
+      }
+
       return false;
     } finally {
       isLoading.value = false;
@@ -246,10 +279,16 @@ class AuthController extends GetxController {
     print('🔄 [AUTH] Redirection pour utilisateur: ${user.nom} (${user.email})');
     print('🔄 [AUTH] Rôle détecté: ${user.role}');
 
-    // Tous les utilisateurs vont vers /home
-    // Le HomeScreen affichera le contenu approprié selon le rôle
-    print('🎯 [AUTH] Redirection vers home screen (contenu conditionnel)');
-    Get.offAllNamed('/home');
+    if (user.role == 'client') {
+      // Les clients vont vers une interface web simplifiée
+      print('🎯 [AUTH] Redirection client vers interface web');
+      // Pour l'instant, rediriger vers home qui affichera le contenu client
+      Get.offAllNamed('/home');
+    } else {
+      // Tous les autres utilisateurs (employés) vont vers l'interface desktop complète
+      print('🎯 [AUTH] Redirection employé vers interface desktop complète');
+      Get.offAllNamed('/home');
+    }
   }
 
   Future<void> signOut() async {
@@ -267,16 +306,29 @@ class AuthController extends GetxController {
 
       print('✅ [AUTH] Déconnexion réussie');
 
-      Get.snackbar(
-        'Déconnexion',
-        'Vous avez été déconnecté avec succès',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // Vérifier si GetX est prêt avant d'afficher le SnackBar
+      try {
+        if (Get.context != null) {
+          Get.snackbar(
+            'Déconnexion',
+            'Vous avez été déconnecté avec succès',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
+        }
+      } catch (snackError) {
+        print('⚠️ [AUTH] Erreur affichage SnackBar déconnexion: $snackError');
+      }
     } catch (e) {
       print('❌ [AUTH] Erreur lors de la déconnexion: $e');
       // Forcer le nettoyage même en cas d'erreur
-      await _clearStoredAuth();
-      Get.offAllNamed('/login');
+      try {
+        await _clearStoredAuth();
+        Get.offAllNamed('/login');
+      } catch (cleanupError) {
+        print('❌ [AUTH] Erreur lors du nettoyage forcé: $cleanupError');
+      }
     }
   }
 

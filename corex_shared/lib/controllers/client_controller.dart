@@ -4,7 +4,7 @@ import '../services/client_service.dart';
 import 'auth_controller.dart';
 
 class ClientController extends GetxController {
-  final ClientService _clientService = Get.find<ClientService>();
+  late final ClientService _clientService;
 
   final RxList<ClientModel> clientsList = <ClientModel>[].obs;
   final RxBool isLoading = false.obs;
@@ -12,6 +12,14 @@ class ClientController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // Initialiser le service de manière sécurisée
+    if (!Get.isRegistered<ClientService>()) {
+      print('⚠️ [CLIENT_CONTROLLER] ClientService non trouvé, initialisation...');
+      Get.put(ClientService(), permanent: true);
+    }
+    _clientService = Get.find<ClientService>();
+
     loadClients();
   }
 

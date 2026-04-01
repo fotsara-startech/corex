@@ -5,7 +5,7 @@ import '../services/course_service.dart';
 import 'auth_controller.dart';
 
 class CourseController extends GetxController {
-  final CourseService _courseService = Get.find<CourseService>();
+  late final CourseService _courseService;
 
   final RxList<CourseModel> coursesList = <CourseModel>[].obs;
   final RxBool isLoading = false.obs;
@@ -15,6 +15,14 @@ class CourseController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // Initialiser le service de manière sécurisée
+    if (!Get.isRegistered<CourseService>()) {
+      print('⚠️ [COURSE_CONTROLLER] CourseService non trouvé, initialisation...');
+      Get.put(CourseService(), permanent: true);
+    }
+    _courseService = Get.find<CourseService>();
+
     loadCourses();
   }
 

@@ -17,6 +17,7 @@ import 'screens/retours/liste_retours_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/pdg/pdg_dashboard_screen.dart';
 import 'screens/demandes/demandes_dashboard_screen.dart';
+import 'screens/devis/devis_list_screen.dart';
 import 'screens/client/demande_course_form.dart';
 import 'screens/client/demande_colis_form.dart';
 import 'screens/client/mes_demandes_screen.dart';
@@ -186,6 +187,7 @@ Future<void> _initializeServices() async {
     await _safeInitialize('AgenceTransportService', () async => Get.put(AgenceTransportService(), permanent: true));
     await _safeInitialize('NotificationService', () async => Get.put(NotificationService(), permanent: true));
     await _safeInitialize('StockageService', () async => Get.put(StockageService(), permanent: true));
+    await _safeInitialize('DevisService', () async => Get.put(DevisService(), permanent: true));
     await _safeInitialize('SyncService', () async => Get.put(SyncService(), permanent: true));
     await _safeInitialize('AlertService', () async => Get.put(AlertService(), permanent: true));
     await _safeInitialize('EmailService', () async => Get.put(EmailService(), permanent: true));
@@ -210,6 +212,7 @@ Future<void> _initializeServices() async {
     await _safeInitialize('PdgDashboardController', () async => Get.put(PdgDashboardController(), permanent: true));
     await _safeInitialize('RetourController', () async => Get.put(RetourController(), permanent: true));
     await _safeInitialize('StockageController', () async => Get.put(StockageController(), permanent: true));
+    await _safeInitialize('DevisController', () async => Get.put(DevisController(), permanent: true));
     await _safeInitialize('SuiviController', () async => Get.put(SuiviController(), permanent: true));
 
     print('✅ [COREX] Services et controllers initialisés avec succès');
@@ -412,6 +415,10 @@ class CorexDesktopApp extends StatelessWidget {
               GetPage(
                 name: '/demandes',
                 page: () => const DemandesDashboardScreen(),
+              ),
+              GetPage(
+                name: '/devis',
+                page: () => const DevisListScreen(),
               ),
               // Routes client
               GetPage(

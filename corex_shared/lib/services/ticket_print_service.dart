@@ -148,14 +148,15 @@ class TicketPrintService {
               // Détails colis - Format compact
               _buildCompactSection('COLIS', [
                 'Contenu: ${colis.contenu}',
-                'Poids: ${colis.poids.toStringAsFixed(1)} kg',
+                if (colis.poids != null) 'Poids: ${colis.poids!.toStringAsFixed(1)} kg',
+                if (colis.valeurDeclaree != null) 'Valeur: ${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA',
                 if (colis.dimensions != null) 'Dim: ${colis.dimensions}',
                 if (colis.commentaire != null && colis.commentaire!.isNotEmpty) 'Note: ${colis.commentaire}',
               ]),
 
               pw.SizedBox(height: 6),
 
-              // Total - Très visible
+              // Tarification éclatée
               pw.Container(
                 width: double.infinity,
                 padding: const pw.EdgeInsets.all(8),
@@ -164,36 +165,47 @@ class TicketPrintService {
                   color: PdfColors.grey100,
                 ),
                 child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text(
-                          'TOTAL:',
-                          style: pw.TextStyle(
-                            fontSize: 12,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                        pw.Text(
-                          '${colis.montantTarif.toStringAsFixed(0)} FCFA',
-                          style: pw.TextStyle(
-                            fontSize: 12,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (colis.tarifAgenceTransport != null && colis.tarifAgenceTransport! > 0) ...[
+                    pw.Text('TARIFICATION', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    pw.Container(height: 0.5, width: double.infinity, color: PdfColors.black, margin: const pw.EdgeInsets.symmetric(vertical: 3)),
+                    if (colis.fraisLivraison > 0)
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Frais de livraison:', style: const pw.TextStyle(fontSize: 9)),
+                          pw.Text('${colis.fraisLivraison.toStringAsFixed(0)} FCFA', style: const pw.TextStyle(fontSize: 9)),
+                        ],
+                      ),
+                    if (colis.fraisCollecte > 0) ...[
                       pw.SizedBox(height: 2),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('Transport:', style: const pw.TextStyle(fontSize: 8)),
-                          pw.Text('${colis.tarifAgenceTransport!.toStringAsFixed(0)} FCFA', style: const pw.TextStyle(fontSize: 8)),
+                          pw.Text('Montant collecte (vendeur):', style: const pw.TextStyle(fontSize: 9)),
+                          pw.Text('${colis.fraisCollecte.toStringAsFixed(0)} FCFA', style: const pw.TextStyle(fontSize: 9)),
+                        ],
+                      ),
+                      pw.Text('  * A reverser au vendeur', style: pw.TextStyle(fontSize: 7, fontStyle: pw.FontStyle.italic)),
+                    ],
+                    if (colis.commissionVente > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Commission vente:', style: const pw.TextStyle(fontSize: 9)),
+                          pw.Text('${colis.commissionVente.toStringAsFixed(0)} FCFA', style: const pw.TextStyle(fontSize: 9)),
                         ],
                       ),
                     ],
+                    pw.Container(height: 0.5, width: double.infinity, color: PdfColors.black, margin: const pw.EdgeInsets.symmetric(vertical: 3)),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('TOTAL A ENCAISSER:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                        pw.Text('${colis.montantTarif.toStringAsFixed(0)} FCFA', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                      ],
+                    ),
                   ],
                 ),
               ),

@@ -4,8 +4,8 @@ import '../services/user_service.dart';
 import '../services/auth_service.dart';
 
 class UserController extends GetxController {
-  final UserService _userService = Get.find<UserService>();
-  final AuthService _authService = Get.find<AuthService>();
+  late final UserService _userService;
+  late final AuthService _authService;
 
   final RxList<UserModel> usersList = <UserModel>[].obs;
   final Rx<UserModel?> selectedUser = Rx<UserModel?>(null);
@@ -17,6 +17,20 @@ class UserController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // Initialiser les services de manière sécurisée
+    if (!Get.isRegistered<UserService>()) {
+      print('⚠️ [USER_CONTROLLER] UserService non trouvé, initialisation...');
+      Get.put(UserService(), permanent: true);
+    }
+    _userService = Get.find<UserService>();
+
+    if (!Get.isRegistered<AuthService>()) {
+      print('⚠️ [USER_CONTROLLER] AuthService non trouvé, initialisation...');
+      Get.put(AuthService(), permanent: true);
+    }
+    _authService = Get.find<AuthService>();
+
     loadUsers();
 
     // Écouter les changements de filtres

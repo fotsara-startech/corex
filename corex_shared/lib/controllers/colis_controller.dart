@@ -71,6 +71,7 @@ class ColisController extends GetxController {
           .toList();
     }
 
+    filtered.sort((a, b) => b.dateCollecte.compareTo(a.dateCollecte));
     return filtered;
   }
 

@@ -67,12 +67,9 @@ class PdgDashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initializeServices();
 
-    // Délai pour permettre l'initialisation des services
-    Future.delayed(const Duration(milliseconds: 500), () {
-      loadDashboardData();
-    });
+    // Attendre que les services soient disponibles avant d'initialiser
+    _waitForServicesAndInitialize();
 
     // Recharger les données quand la période change
     ever(selectedPeriod, (_) => loadDashboardData());
@@ -80,6 +77,52 @@ class PdgDashboardController extends GetxController {
 
     // Actualisation automatique toutes les 5 minutes
     _startAutoRefresh();
+  }
+
+  /// Attend que les services soient disponibles avant d'initialiser
+  Future<void> _waitForServicesAndInitialize() async {
+    int attempts = 0;
+    const maxAttempts = 15;
+    const delayBetweenAttempts = Duration(milliseconds: 800);
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      print('🔄 [PDG_DASHBOARD] Tentative $attempts/$maxAttempts d\'initialisation des services...');
+
+      // Vérifier d'abord si les services sont enregistrés dans GetX
+      print('   Vérification GetX:');
+      print('   - ColisService: ${Get.isRegistered<ColisService>()}');
+      print('   - TransactionService: ${Get.isRegistered<TransactionService>()}');
+      print('   - LivraisonService: ${Get.isRegistered<LivraisonService>()}');
+      print('   - UserService: ${Get.isRegistered<UserService>()}');
+      print('   - AgenceService: ${Get.isRegistered<AgenceService>()}');
+
+      _initializeServices();
+
+      // Vérifier si tous les services essentiels sont disponibles
+      if (_colisService != null && _transactionService != null && _livraisonService != null && _userService != null && _agenceService != null) {
+        print('✅ [PDG_DASHBOARD] Tous les services sont disponibles, chargement des données...');
+
+        // Délai supplémentaire pour s'assurer que tout est prêt
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // Charger les données
+        loadDashboardData();
+        return;
+      }
+
+      if (attempts < maxAttempts) {
+        print('⚠️ [PDG_DASHBOARD] Services manquants, nouvelle tentative dans ${delayBetweenAttempts.inMilliseconds}ms...');
+        await Future.delayed(delayBetweenAttempts);
+      }
+    }
+
+    print('❌ [PDG_DASHBOARD] Impossible d\'initialiser tous les services après $maxAttempts tentatives');
+    print('   - ColisService: ${_colisService != null ? "✅" : "❌"}');
+    print('   - TransactionService: ${_transactionService != null ? "✅" : "❌"}');
+    print('   - LivraisonService: ${_livraisonService != null ? "✅" : "❌"}');
+    print('   - UserService: ${_userService != null ? "✅" : "❌"}');
+    print('   - AgenceService: ${_agenceService != null ? "✅" : "❌"}');
   }
 
   @override
@@ -106,14 +149,25 @@ class PdgDashboardController extends GetxController {
       if (Get.isRegistered<AgenceService>()) {
         _agenceService = Get.find<AgenceService>();
       }
-      print('✅ [PDG_DASHBOARD] Services initialisés');
+
+      // Log détaillé du statut
+      if (_colisService != null && _transactionService != null && _livraisonService != null && _userService != null && _agenceService != null) {
+        print('✅ [PDG_DASHBOARD] Tous les services sont disponibles');
+      } else {
+        print('⚠️ [PDG_DASHBOARD] Services manquants:');
+        if (_colisService == null) print('   - ColisService: ❌');
+        if (_transactionService == null) print('   - TransactionService: ❌');
+        if (_livraisonService == null) print('   - LivraisonService: ❌');
+        if (_userService == null) print('   - UserService: ❌');
+        if (_agenceService == null) print('   - AgenceService: ❌');
+      }
     } catch (e) {
       print('⚠️ [PDG_DASHBOARD] Erreur initialisation services: $e');
     }
   }
 
   void _startAutoRefresh() {
-    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
       if (!isLoading.value) {
         loadDashboardData();
       }
@@ -152,7 +206,7 @@ class PdgDashboardController extends GetxController {
   }
 
   void _setDefaultValues() {
-    // Valeurs par défaut en cas d'erreur
+    // Valeurs à 0 en cas d'erreur (pas de données de démo)
     caTotal.value = 0.0;
     caAujourdhui.value = 0.0;
     caMois.value = 0.0;
@@ -162,12 +216,12 @@ class PdgDashboardController extends GetxController {
     tauxLivraison.value = 0.0;
     clientsActifs.value = 0;
 
-    // Données de démonstration pour les graphiques
-    evolutionCA.value = _generateDemoEvolutionData('CA');
-    evolutionVolume.value = _generateDemoEvolutionData('Volume');
-    repartitionStatuts.value = _generateDemoStatusData();
-    performanceAgences.value = _generateDemoAgenceData();
-    topCoursiers.value = _generateDemoCoursierData();
+    // Vider les graphiques
+    evolutionCA.clear();
+    evolutionVolume.clear();
+    repartitionStatuts.clear();
+    performanceAgences.clear();
+    topCoursiers.clear();
   }
 
   List<Map<String, dynamic>> _generateDemoEvolutionData(String type) {
@@ -238,55 +292,67 @@ class PdgDashboardController extends GetxController {
 
   Future<void> _loadKPIsFinanciers(DateTime debut, DateTime fin) async {
     try {
-      if (_transactionService != null && _agenceService != null) {
-        // Récupérer les vraies données
-        final transactions = await _getTransactionsByPeriod(debut, fin);
-        final recettes = transactions.where((t) => t.type == 'recette').toList();
-        final depenses = transactions.where((t) => t.type == 'depense').toList();
-
-        caTotal.value = recettes.fold(0.0, (sum, t) => sum + t.montant);
-        final totalDepenses = depenses.fold(0.0, (sum, t) => sum + t.montant);
-        margeNette.value = caTotal.value - totalDepenses;
-
-        // CA aujourd'hui
-        final aujourdhui = DateTime.now();
-        final debutJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
-        final finJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day, 23, 59, 59);
-        final transactionsJour = await _getTransactionsByPeriod(debutJour, finJour);
-        caAujourdhui.value = transactionsJour.where((t) => t.type == 'recette').fold(0.0, (sum, t) => sum + t.montant);
-
-        // CA mois
-        final debutMois = DateTime(aujourdhui.year, aujourdhui.month, 1);
-        final finMois = DateTime(aujourdhui.year, aujourdhui.month + 1, 0, 23, 59, 59);
-        final transactionsMois = await _getTransactionsByPeriod(debutMois, finMois);
-        caMois.value = transactionsMois.where((t) => t.type == 'recette').fold(0.0, (sum, t) => sum + t.montant);
-
-        // CA année
-        final debutAnnee = DateTime(aujourdhui.year, 1, 1);
-        final finAnnee = DateTime(aujourdhui.year, 12, 31, 23, 59, 59);
-        final transactionsAnnee = await _getTransactionsByPeriod(debutAnnee, finAnnee);
-        caAnnee.value = transactionsAnnee.where((t) => t.type == 'recette').fold(0.0, (sum, t) => sum + t.montant);
-
-        // Commissions COREX
-        commissionsTotales.value = recettes.where((t) => t.categorieRecette?.contains('commission') == true).fold(0.0, (sum, t) => sum + t.montant);
-
-        // Créances (colis non payés)
-        if (_colisService != null) {
-          final colisNonPayes = await _colisService!.getColisNonPayes();
-          creances.value = colisNonPayes.fold(0.0, (sum, c) => sum + c.montantTarif);
-        }
-
-        // Croissance CA (comparaison avec période précédente)
-        await _calculateCroissanceCA(debut, fin);
-
-        print('✅ [PDG_DASHBOARD] KPIs financiers chargés depuis Firebase');
-      } else {
-        // Fallback sur données de démonstration
-        _loadDemoKPIsFinanciers();
+      if (_transactionService == null || _agenceService == null) {
+        throw Exception('Services TransactionService ou AgenceService non initialisés');
       }
+
+      print('🔄 [PDG_DASHBOARD] Chargement KPIs financiers...');
+
+      // Récupérer les vraies données
+      final transactions = await _getTransactionsByPeriod(debut, fin);
+      final recettes = transactions.where((t) => t.type == 'recette').toList();
+      final depenses = transactions.where((t) => t.type == 'depense').toList();
+
+      caTotal.value = recettes.fold(0.0, (sum, t) => sum + t.montant);
+      final totalDepenses = depenses.fold(0.0, (sum, t) => sum + t.montant);
+      margeNette.value = caTotal.value - totalDepenses;
+
+      // CA aujourd'hui
+      final aujourdhui = DateTime.now();
+      final debutJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
+      final finJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day, 23, 59, 59);
+      final transactionsJour = await _getTransactionsByPeriod(debutJour, finJour);
+      caAujourdhui.value = transactionsJour.where((t) => t.type == 'recette').fold(0.0, (sum, t) => sum + t.montant);
+
+      // CA mois
+      final debutMois = DateTime(aujourdhui.year, aujourdhui.month, 1);
+      final finMois = DateTime(aujourdhui.year, aujourdhui.month + 1, 0, 23, 59, 59);
+      final transactionsMois = await _getTransactionsByPeriod(debutMois, finMois);
+      caMois.value = transactionsMois.where((t) => t.type == 'recette').fold(0.0, (sum, t) => sum + t.montant);
+
+      // CA année
+      final debutAnnee = DateTime(aujourdhui.year, 1, 1);
+      final finAnnee = DateTime(aujourdhui.year, 12, 31, 23, 59, 59);
+      final transactionsAnnee = await _getTransactionsByPeriod(debutAnnee, finAnnee);
+      caAnnee.value = transactionsAnnee.where((t) => t.type == 'recette').fold(0.0, (sum, t) => sum + t.montant);
+
+      // Commissions COREX
+      commissionsTotales.value = recettes.where((t) => t.categorieRecette?.contains('commission') == true).fold(0.0, (sum, t) => sum + t.montant);
+
+      // Créances (colis non payés)
+      if (_colisService != null) {
+        final colisNonPayes = await _colisService!.getColisNonPayes();
+        creances.value = colisNonPayes.fold(0.0, (sum, c) => sum + c.montantTarif);
+      } else {
+        creances.value = 0.0;
+      }
+
+      // Croissance CA (comparaison avec période précédente)
+      await _calculateCroissanceCA(debut, fin);
+
+      print('✅ [PDG_DASHBOARD] KPIs financiers chargés: CA Aujourd\'hui=${caAujourdhui.value}, CA Mois=${caMois.value}, CA Année=${caAnnee.value}');
     } catch (e) {
-      print('⚠️ [PDG_DASHBOARD] Erreur KPIs financiers, fallback démo: $e');
-      _loadDemoKPIsFinanciers();
+      print('❌ [PDG_DASHBOARD] ERREUR CRITIQUE KPIs financiers: $e');
+      // Mettre à 0 au lieu de charger des données de démo
+      caTotal.value = 0.0;
+      caAujourdhui.value = 0.0;
+      caMois.value = 0.0;
+      caAnnee.value = 0.0;
+      margeNette.value = 0.0;
+      creances.value = 0.0;
+      commissionsTotales.value = 0.0;
+      croissanceCA.value = 0.0;
+      rethrow;
     }
   }
 
@@ -303,54 +369,71 @@ class PdgDashboardController extends GetxController {
 
   Future<void> _loadKPIsOperationnels(DateTime debut, DateTime fin) async {
     try {
-      if (_colisService != null && _livraisonService != null) {
-        // Récupérer les vraies données
-        final colis = await _colisService!.getColisByPeriod(debut, fin);
-        colisTotal.value = colis.length;
-
-        // Colis aujourd'hui
-        final aujourdhui = DateTime.now();
-        final debutJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
-        final finJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day, 23, 59, 59);
-        final colisJour = await _colisService!.getColisByPeriod(debutJour, finJour);
-        colisAujourdhui.value = colisJour.length;
-
-        // Colis mois
-        final debutMois = DateTime(aujourdhui.year, aujourdhui.month, 1);
-        final finMois = DateTime(aujourdhui.year, aujourdhui.month + 1, 0, 23, 59, 59);
-        final colisMoisData = await _colisService!.getColisByPeriod(debutMois, finMois);
-        colisMois.value = colisMoisData.length;
-
-        // Livraisons
-        final livraisons = await _livraisonService!.getLivraisonsByPeriod(debut, fin);
-        livraisonsTotal.value = livraisons.length;
-        livraisonsReussies.value = livraisons.where((l) => l.statut == 'livree').length;
-
-        if (livraisonsTotal.value > 0) {
-          tauxLivraison.value = (livraisonsReussies.value / livraisonsTotal.value) * 100;
-        }
-
-        // Délai moyen de livraison
-        final colisLivres = colis.where((c) => c.dateLivraison != null).toList();
-        if (colisLivres.isNotEmpty) {
-          final delais = colisLivres.map((c) => c.dateLivraison!.difference(c.dateCollecte).inHours).toList();
-          delaiMoyen.value = delais.reduce((a, b) => a + b) / delais.length;
-        }
-
-        // Retours
-        retours.value = colis.where((c) => c.isRetour).length;
-        if (colisTotal.value > 0) {
-          tauxRetours.value = (retours.value / colisTotal.value) * 100;
-        }
-
-        print('✅ [PDG_DASHBOARD] KPIs opérationnels chargés depuis Firebase');
-      } else {
-        // Fallback sur données de démonstration
-        _loadDemoKPIsOperationnels();
+      if (_colisService == null || _livraisonService == null) {
+        throw Exception('Services ColisService ou LivraisonService non initialisés');
       }
+
+      print('🔄 [PDG_DASHBOARD] Chargement KPIs opérationnels...');
+
+      // Récupérer les vraies données
+      final colis = await _colisService!.getColisByPeriod(debut, fin);
+      colisTotal.value = colis.length;
+
+      // Colis aujourd'hui
+      final aujourdhui = DateTime.now();
+      final debutJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
+      final finJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day, 23, 59, 59);
+      final colisJour = await _colisService!.getColisByPeriod(debutJour, finJour);
+      colisAujourdhui.value = colisJour.length;
+
+      // Colis mois
+      final debutMois = DateTime(aujourdhui.year, aujourdhui.month, 1);
+      final finMois = DateTime(aujourdhui.year, aujourdhui.month + 1, 0, 23, 59, 59);
+      final colisMoisData = await _colisService!.getColisByPeriod(debutMois, finMois);
+      colisMois.value = colisMoisData.length;
+
+      // Livraisons
+      final livraisons = await _livraisonService!.getLivraisonsByPeriod(debut, fin);
+      livraisonsTotal.value = livraisons.length;
+      livraisonsReussies.value = livraisons.where((l) => l.statut == 'livree').length;
+
+      if (livraisonsTotal.value > 0) {
+        tauxLivraison.value = (livraisonsReussies.value / livraisonsTotal.value) * 100;
+      } else {
+        tauxLivraison.value = 0.0;
+      }
+
+      // Délai moyen de livraison
+      final colisLivres = colis.where((c) => c.dateLivraison != null).toList();
+      if (colisLivres.isNotEmpty) {
+        final delais = colisLivres.map((c) => c.dateLivraison!.difference(c.dateCollecte).inHours).toList();
+        delaiMoyen.value = delais.reduce((a, b) => a + b) / delais.length;
+      } else {
+        delaiMoyen.value = 0.0;
+      }
+
+      // Retours
+      retours.value = colis.where((c) => c.isRetour).length;
+      if (colisTotal.value > 0) {
+        tauxRetours.value = (retours.value / colisTotal.value) * 100;
+      } else {
+        tauxRetours.value = 0.0;
+      }
+
+      print('✅ [PDG_DASHBOARD] KPIs opérationnels chargés: Colis Aujourd\'hui=${colisAujourdhui.value}, Taux Livraison=${tauxLivraison.value.toStringAsFixed(1)}%');
     } catch (e) {
-      print('⚠️ [PDG_DASHBOARD] Erreur KPIs opérationnels, fallback démo: $e');
-      _loadDemoKPIsOperationnels();
+      print('❌ [PDG_DASHBOARD] ERREUR CRITIQUE KPIs opérationnels: $e');
+      // Mettre à 0 au lieu de charger des données de démo
+      colisAujourdhui.value = 0;
+      colisMois.value = 0;
+      colisTotal.value = 0;
+      livraisonsTotal.value = 0;
+      livraisonsReussies.value = 0;
+      tauxLivraison.value = 0.0;
+      delaiMoyen.value = 0.0;
+      retours.value = 0;
+      tauxRetours.value = 0.0;
+      rethrow;
     }
   }
 
@@ -369,36 +452,45 @@ class PdgDashboardController extends GetxController {
 
   Future<void> _loadKPIsCroissance(DateTime debut, DateTime fin) async {
     try {
-      if (_colisService != null && _agenceService != null) {
-        // Nouveaux clients (basé sur première commande)
-        final colis = await _colisService!.getColisByPeriod(debut, fin);
-        final clientsIds = colis.map((c) => c.expediteurTelephone).toSet();
-
-        // Clients actifs (ayant envoyé au moins un colis)
-        clientsActifs.value = clientsIds.length;
-
-        // Croissance volume (comparaison avec période précédente)
-        await _calculateCroissanceVolume(debut, fin);
-
-        // Agences actives
-        final agences = await _agenceService!.getAllAgences();
-        agencesActives.value = agences.where((a) => a.isActive).length;
-
-        // Zones desservies (approximation basée sur les livraisons)
-        if (_livraisonService != null) {
-          final livraisons = await _livraisonService!.getLivraisonsByPeriod(debut, fin);
-          final zones = livraisons.map((l) => l.zone).toSet();
-          zonesDesservies.value = zones.length;
-        }
-
-        print('✅ [PDG_DASHBOARD] KPIs croissance chargés depuis Firebase');
-      } else {
-        // Fallback sur données de démonstration
-        _loadDemoKPIsCroissance();
+      if (_colisService == null || _agenceService == null) {
+        throw Exception('Services ColisService ou AgenceService non initialisés');
       }
+
+      print('🔄 [PDG_DASHBOARD] Chargement KPIs croissance...');
+
+      // Nouveaux clients (basé sur première commande)
+      final colis = await _colisService!.getColisByPeriod(debut, fin);
+      final clientsIds = colis.map((c) => c.expediteurTelephone).toSet();
+
+      // Clients actifs (ayant envoyé au moins un colis)
+      clientsActifs.value = clientsIds.length;
+
+      // Croissance volume (comparaison avec période précédente)
+      await _calculateCroissanceVolume(debut, fin);
+
+      // Agences actives
+      final agences = await _agenceService!.getAllAgences();
+      agencesActives.value = agences.where((a) => a.isActive).length;
+
+      // Zones desservies (approximation basée sur les livraisons)
+      if (_livraisonService != null) {
+        final livraisons = await _livraisonService!.getLivraisonsByPeriod(debut, fin);
+        final zones = livraisons.map((l) => l.zone).toSet();
+        zonesDesservies.value = zones.length;
+      } else {
+        zonesDesservies.value = 0;
+      }
+
+      print('✅ [PDG_DASHBOARD] KPIs croissance chargés: Clients Actifs=${clientsActifs.value}, Agences=${agencesActives.value}');
     } catch (e) {
-      print('⚠️ [PDG_DASHBOARD] Erreur KPIs croissance, fallback démo: $e');
-      _loadDemoKPIsCroissance();
+      print('❌ [PDG_DASHBOARD] ERREUR CRITIQUE KPIs croissance: $e');
+      // Mettre à 0 au lieu de charger des données de démo
+      clientsActifs.value = 0;
+      nouveauxClients.value = 0;
+      croissanceVolume.value = 0.0;
+      agencesActives.value = 0;
+      zonesDesservies.value = 0;
+      rethrow;
     }
   }
 
@@ -413,33 +505,40 @@ class PdgDashboardController extends GetxController {
 
   Future<void> _loadKPIsRH() async {
     try {
-      if (_userService != null) {
-        final users = await _userService!.getAllUsers();
-
-        // Utilisateurs actifs (connectés dans les 7 derniers jours)
-        final seuilActivite = DateTime.now().subtract(const Duration(days: 7));
-        utilisateursActifs.value = users.where((u) => u.isActive && (u.lastLogin?.isAfter(seuilActivite) ?? false)).length;
-
-        // Coursiers actifs
-        coursiersActifs.value = users.where((u) => u.role == 'coursier' && u.isActive).length;
-
-        // Productivité moyenne (livraisons par coursier par jour)
-        if (coursiersActifs.value > 0 && _livraisonService != null) {
-          final aujourdhui = DateTime.now();
-          final debutJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
-          final finJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day, 23, 59, 59);
-          final livraisonsJour = await _livraisonService!.getLivraisonsByPeriod(debutJour, finJour);
-          productiviteMoyenne.value = livraisonsJour.length / coursiersActifs.value;
-        }
-
-        print('✅ [PDG_DASHBOARD] KPIs RH chargés depuis Firebase');
-      } else {
-        // Fallback sur données de démonstration
-        _loadDemoKPIsRH();
+      if (_userService == null) {
+        throw Exception('Service UserService non initialisé');
       }
+
+      print('🔄 [PDG_DASHBOARD] Chargement KPIs RH...');
+
+      final users = await _userService!.getAllUsers();
+
+      // Utilisateurs actifs (connectés dans les 7 derniers jours)
+      final seuilActivite = DateTime.now().subtract(const Duration(days: 7));
+      utilisateursActifs.value = users.where((u) => u.isActive && (u.lastLogin?.isAfter(seuilActivite) ?? false)).length;
+
+      // Coursiers actifs
+      coursiersActifs.value = users.where((u) => u.role == 'coursier' && u.isActive).length;
+
+      // Productivité moyenne (livraisons par coursier par jour)
+      if (coursiersActifs.value > 0 && _livraisonService != null) {
+        final aujourdhui = DateTime.now();
+        final debutJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
+        final finJour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day, 23, 59, 59);
+        final livraisonsJour = await _livraisonService!.getLivraisonsByPeriod(debutJour, finJour);
+        productiviteMoyenne.value = livraisonsJour.length / coursiersActifs.value;
+      } else {
+        productiviteMoyenne.value = 0.0;
+      }
+
+      print('✅ [PDG_DASHBOARD] KPIs RH chargés: Utilisateurs Actifs=${utilisateursActifs.value}, Coursiers=${coursiersActifs.value}');
     } catch (e) {
-      print('⚠️ [PDG_DASHBOARD] Erreur KPIs RH, fallback démo: $e');
-      _loadDemoKPIsRH();
+      print('❌ [PDG_DASHBOARD] ERREUR CRITIQUE KPIs RH: $e');
+      // Mettre à 0 au lieu de charger des données de démo
+      utilisateursActifs.value = 0;
+      coursiersActifs.value = 0;
+      productiviteMoyenne.value = 0.0;
+      rethrow;
     }
   }
 
@@ -452,33 +551,41 @@ class PdgDashboardController extends GetxController {
 
   Future<void> _loadGraphiquesData(DateTime debut, DateTime fin) async {
     try {
-      if (_colisService != null && _livraisonService != null && _agenceService != null) {
-        // Évolution CA (7 derniers jours) - Données réelles
-        await _loadRealEvolutionCA();
-
-        // Évolution volume (7 derniers jours) - Données réelles
-        await _loadRealEvolutionVolume();
-
-        // Répartition statuts colis - Données réelles
-        await _loadRealRepartitionStatuts(debut, fin);
-
-        // Performance agences - Données réelles
-        await _loadRealPerformanceAgences(debut, fin);
-
-        // Top coursiers - Données réelles
-        await _loadRealTopCoursiers(debut, fin);
-
-        // Motifs d'échec - Données réelles
-        await _loadRealMotifsEchec(debut, fin);
-
-        print('✅ [PDG_DASHBOARD] Graphiques chargés depuis Firebase');
-      } else {
-        // Fallback sur données de démonstration
-        _loadDemoGraphiquesData();
+      if (_colisService == null || _livraisonService == null || _agenceService == null) {
+        throw Exception('Services non initialisés pour les graphiques');
       }
+
+      print('🔄 [PDG_DASHBOARD] Chargement graphiques...');
+
+      // Évolution CA (7 derniers jours) - Données réelles
+      await _loadRealEvolutionCA();
+
+      // Évolution volume (7 derniers jours) - Données réelles
+      await _loadRealEvolutionVolume();
+
+      // Répartition statuts colis - Données réelles
+      await _loadRealRepartitionStatuts(debut, fin);
+
+      // Performance agences - Données réelles
+      await _loadRealPerformanceAgences(debut, fin);
+
+      // Top coursiers - Données réelles
+      await _loadRealTopCoursiers(debut, fin);
+
+      // Motifs d'échec - Données réelles
+      await _loadRealMotifsEchec(debut, fin);
+
+      print('✅ [PDG_DASHBOARD] Graphiques chargés depuis Firebase');
     } catch (e) {
-      print('⚠️ [PDG_DASHBOARD] Erreur graphiques, fallback démo: $e');
-      _loadDemoGraphiquesData();
+      print('❌ [PDG_DASHBOARD] ERREUR CRITIQUE graphiques: $e');
+      // Vider les listes au lieu de charger des données de démo
+      evolutionCA.clear();
+      evolutionVolume.clear();
+      repartitionStatuts.clear();
+      performanceAgences.clear();
+      topCoursiers.clear();
+      motifsEchec.clear();
+      rethrow;
     }
   }
 
@@ -590,7 +697,9 @@ class PdgDashboardController extends GetxController {
 
   Future<void> _loadRealEvolutionCA() async {
     try {
-      if (_transactionService == null) return;
+      if (_transactionService == null) {
+        throw Exception('TransactionService non initialisé');
+      }
 
       evolutionCA.clear();
       final maintenant = DateTime.now();
@@ -605,15 +714,20 @@ class PdgDashboardController extends GetxController {
 
         evolutionCA.add({'date': jour, 'ca': ca, 'label': '${jour.day}/${jour.month}'});
       }
+
+      print('✅ [PDG_DASHBOARD] Évolution CA chargée: ${evolutionCA.length} jours');
     } catch (e) {
-      print('⚠️ Erreur évolution CA réelle: $e');
-      evolutionCA.value = _generateDemoEvolutionData('CA');
+      print('❌ [PDG_DASHBOARD] ERREUR évolution CA: $e');
+      evolutionCA.clear();
+      rethrow;
     }
   }
 
   Future<void> _loadRealEvolutionVolume() async {
     try {
-      if (_colisService == null) return;
+      if (_colisService == null) {
+        throw Exception('ColisService non initialisé');
+      }
 
       evolutionVolume.clear();
       final maintenant = DateTime.now();
@@ -627,15 +741,20 @@ class PdgDashboardController extends GetxController {
 
         evolutionVolume.add({'date': jour, 'volume': colis.length, 'label': '${jour.day}/${jour.month}'});
       }
+
+      print('✅ [PDG_DASHBOARD] Évolution volume chargée: ${evolutionVolume.length} jours');
     } catch (e) {
-      print('⚠️ Erreur évolution volume réelle: $e');
-      evolutionVolume.value = _generateDemoEvolutionData('Volume');
+      print('❌ [PDG_DASHBOARD] ERREUR évolution volume: $e');
+      evolutionVolume.clear();
+      rethrow;
     }
   }
 
   Future<void> _loadRealRepartitionStatuts(DateTime debut, DateTime fin) async {
     try {
-      if (_colisService == null) return;
+      if (_colisService == null) {
+        throw Exception('ColisService non initialisé');
+      }
 
       final colis = await _colisService!.getColisByPeriod(debut, fin);
       final Map<String, int> statuts = {};
@@ -645,15 +764,20 @@ class PdgDashboardController extends GetxController {
       }
 
       repartitionStatuts.value = statuts.entries.map((e) => {'statut': e.key, 'count': e.value, 'pourcentage': colis.isNotEmpty ? (e.value / colis.length) * 100 : 0}).toList();
+
+      print('✅ [PDG_DASHBOARD] Répartition statuts chargée: ${statuts.length} statuts');
     } catch (e) {
-      print('⚠️ Erreur répartition statuts réelle: $e');
-      repartitionStatuts.value = _generateDemoStatusData();
+      print('❌ [PDG_DASHBOARD] ERREUR répartition statuts: $e');
+      repartitionStatuts.clear();
+      rethrow;
     }
   }
 
   Future<void> _loadRealPerformanceAgences(DateTime debut, DateTime fin) async {
     try {
-      if (_agenceService == null || _transactionService == null || _colisService == null) return;
+      if (_agenceService == null || _transactionService == null || _colisService == null) {
+        throw Exception('Services non initialisés pour performance agences');
+      }
 
       final agences = await _agenceService!.getAllAgences();
       performanceAgences.clear();
@@ -675,15 +799,20 @@ class PdgDashboardController extends GetxController {
 
       // Trier par CA décroissant
       performanceAgences.sort((a, b) => (b['ca'] as double).compareTo(a['ca'] as double));
+
+      print('✅ [PDG_DASHBOARD] Performance agences chargée: ${performanceAgences.length} agences');
     } catch (e) {
-      print('⚠️ Erreur performance agences réelle: $e');
-      performanceAgences.value = _generateDemoAgenceData();
+      print('❌ [PDG_DASHBOARD] ERREUR performance agences: $e');
+      performanceAgences.clear();
+      rethrow;
     }
   }
 
   Future<void> _loadRealTopCoursiers(DateTime debut, DateTime fin) async {
     try {
-      if (_livraisonService == null) return;
+      if (_livraisonService == null) {
+        throw Exception('LivraisonService non initialisé');
+      }
 
       final livraisons = await _livraisonService!.getLivraisonsByPeriod(debut, fin);
       final Map<String, Map<String, dynamic>> coursiersStats = {};
@@ -716,15 +845,20 @@ class PdgDashboardController extends GetxController {
       if (topCoursiers.length > 10) {
         topCoursiers.value = topCoursiers.take(10).toList();
       }
+
+      print('✅ [PDG_DASHBOARD] Top coursiers chargé: ${topCoursiers.length} coursiers');
     } catch (e) {
-      print('⚠️ Erreur top coursiers réel: $e');
-      topCoursiers.value = _generateDemoCoursierData();
+      print('❌ [PDG_DASHBOARD] ERREUR top coursiers: $e');
+      topCoursiers.clear();
+      rethrow;
     }
   }
 
   Future<void> _loadRealMotifsEchec(DateTime debut, DateTime fin) async {
     try {
-      if (_livraisonService == null) return;
+      if (_livraisonService == null) {
+        throw Exception('LivraisonService non initialisé');
+      }
 
       final livraisons = await _livraisonService!.getLivraisonsByPeriod(debut, fin);
       final Map<String, int> motifs = {};
@@ -739,13 +873,12 @@ class PdgDashboardController extends GetxController {
 
       // Trier par count décroissant
       motifsEchec.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+
+      print('✅ [PDG_DASHBOARD] Motifs échec chargés: ${motifs.length} motifs');
     } catch (e) {
-      print('⚠️ Erreur motifs échec réels: $e');
-      motifsEchec.value = [
-        {'motif': 'Destinataire absent', 'count': 15},
-        {'motif': 'Adresse incorrecte', 'count': 8},
-        {'motif': 'Refus du colis', 'count': 5},
-      ];
+      print('❌ [PDG_DASHBOARD] ERREUR motifs échec: $e');
+      motifsEchec.clear();
+      rethrow;
     }
   }
 }

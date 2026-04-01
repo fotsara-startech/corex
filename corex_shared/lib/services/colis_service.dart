@@ -330,4 +330,56 @@ class ColisService extends GetxService {
       return [];
     }
   }
+
+  /// Paye un colis et crée automatiquement une transaction dans la caisse
+  Future<void> payerColis({
+    required String colisId,
+    required double montant,
+    required String userId,
+    required String agenceId,
+    required String numeroSuivi,
+    double fraisCollecte = 0,
+    bool estPaiementPartiel = false,
+  }) async {
+    try {
+      print('💰 [COLIS_SERVICE] Paiement du colis $numeroSuivi');
+
+      final now = DateTime.now();
+
+      // 1. Mettre à jour le colis
+      await FirebaseService.colis.doc(colisId).update({
+        'isPaye': true,
+        'datePaiement': Timestamp.fromDate(now),
+      });
+      print('✅ [COLIS_SERVICE] Colis marqué comme payé');
+
+      // 2. Calculer le montant COREX
+      // - Paiement complet : déduire fraisCollecte (à reverser au vendeur)
+      // - Paiement partiel (reste à payer) : fraisCollecte déjà couverts, tout va à COREX
+      final double montantCorex = estPaiementPartiel ? montant : (montant - fraisCollecte < 0 ? 0 : montant - fraisCollecte);
+
+      if (!Get.isRegistered<TransactionService>()) {
+        Get.put(TransactionService(), permanent: true);
+      }
+      final transactionService = Get.find<TransactionService>();
+
+      final transaction = TransactionModel(
+        id: const Uuid().v4(),
+        agenceId: agenceId,
+        type: 'recette',
+        montant: montantCorex,
+        date: now,
+        categorieRecette: 'Paiement colis',
+        description: estPaiementPartiel ? 'Complément paiement colis $numeroSuivi' : 'Paiement du colis $numeroSuivi (frais livraison + commission)',
+        reference: numeroSuivi,
+        userId: userId,
+      );
+
+      await transactionService.createTransaction(transaction);
+      print('✅ [COLIS_SERVICE] Transaction créée dans la caisse (montant COREX: $montantCorex FCFA)');
+    } catch (e) {
+      print('❌ [COLIS_SERVICE] Erreur lors du paiement du colis: $e');
+      rethrow;
+    }
+  }
 }

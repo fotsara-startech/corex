@@ -94,6 +94,26 @@ class StockageService {
         .map((snapshot) => snapshot.docs.map((doc) => DepotModel.fromFirestore(doc)).toList());
   }
 
+  Future<void> deleteDepot(String depotId) async {
+    try {
+      await _firestore.collection('depots').doc(depotId).delete();
+      print('✅ [STOCKAGE_SERVICE] Dépôt supprimé: $depotId');
+    } catch (e) {
+      print('❌ [STOCKAGE_SERVICE] Erreur suppression dépôt: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteMouvement(String mouvementId) async {
+    try {
+      await _firestore.collection('mouvements_stock').doc(mouvementId).delete();
+      print('✅ [STOCKAGE_SERVICE] Mouvement supprimé: $mouvementId');
+    } catch (e) {
+      print('❌ [STOCKAGE_SERVICE] Erreur suppression mouvement: $e');
+      rethrow;
+    }
+  }
+
   Stream<List<DepotModel>> getDepotsByClient(String clientId) {
     return _firestore
         .collection('depots')

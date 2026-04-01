@@ -13,7 +13,10 @@ export 'models/client_model.dart';
 export 'models/depot_model.dart';
 export 'models/mouvement_stock_model.dart';
 export 'models/facture_stockage_model.dart';
+export 'models/devis_model.dart';
 export 'models/course_model.dart';
+export 'models/demande_course_model.dart';
+export 'models/demande_colis_model.dart';
 
 // Repositories
 export 'repositories/local_colis_repository.dart';
@@ -30,6 +33,7 @@ export 'services/livraison_service.dart';
 export 'services/transaction_service.dart';
 export 'services/client_service.dart';
 export 'services/stockage_service.dart';
+export 'services/devis_service.dart';
 export 'services/connectivity_service.dart';
 export 'services/sync_service.dart';
 export 'services/export_service.dart';
@@ -42,6 +46,7 @@ export 'services/ticket_service_fixed.dart';
 export 'services/ticket_service_simple.dart';
 export 'services/ticket_service_optimized.dart';
 export 'services/ticket_print_service.dart';
+export 'services/demande_service.dart';
 
 // Controllers
 export 'controllers/auth_controller.dart';
@@ -54,12 +59,14 @@ export 'controllers/livraison_controller.dart';
 export 'controllers/transaction_controller.dart';
 export 'controllers/client_controller.dart';
 export 'controllers/stockage_controller.dart';
+export 'controllers/devis_controller.dart';
 export 'controllers/suivi_controller.dart';
 export 'controllers/dashboard_controller.dart';
 export 'controllers/course_controller.dart';
 export 'controllers/retour_controller.dart';
 export 'controllers/notification_controller.dart';
 export 'controllers/pdg_dashboard_controller.dart';
+export 'controllers/demande_controller.dart';
 
 // Constants
 export 'constants/app_constants.dart';

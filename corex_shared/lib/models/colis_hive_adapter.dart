@@ -56,7 +56,7 @@ class ColisModelAdapter extends TypeAdapter<ColisModel> {
           retourId: null, // Nouveau champ - pas dans l'ancien format
         );
       } else {
-        // Nouveau format (35 champs)
+        // Nouveau format (35+ champs)
         return ColisModel(
           id: fields[0] as String,
           numeroSuivi: fields[1] as String,
@@ -93,6 +93,9 @@ class ColisModelAdapter extends TypeAdapter<ColisModel> {
           isRetour: fields[32] as bool? ?? false,
           colisInitialId: fields[33] as String?,
           retourId: fields[34] as String?,
+          fraisLivraison: fields[35] as double? ?? 0,
+          fraisCollecte: fields[36] as double? ?? 0,
+          commissionVente: fields[37] as double? ?? 0,
         );
       }
     } catch (e) {
@@ -106,7 +109,7 @@ class ColisModelAdapter extends TypeAdapter<ColisModel> {
   @override
   void write(BinaryWriter writer, ColisModel obj) {
     writer
-      ..writeByte(35)
+      ..writeByte(38)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -176,7 +179,13 @@ class ColisModelAdapter extends TypeAdapter<ColisModel> {
       ..writeByte(33)
       ..write(obj.colisInitialId)
       ..writeByte(34)
-      ..write(obj.retourId);
+      ..write(obj.retourId)
+      ..writeByte(35)
+      ..write(obj.fraisLivraison)
+      ..writeByte(36)
+      ..write(obj.fraisCollecte)
+      ..writeByte(37)
+      ..write(obj.commissionVente);
   }
 
   @override

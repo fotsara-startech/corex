@@ -2,7 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 class FirebaseService {
-  static FirebaseFirestore get firestore => FirebaseFirestore.instance;
+  static FirebaseFirestore? _firestore;
+
+  static FirebaseFirestore get firestore {
+    _firestore ??= FirebaseFirestore.instance;
+    return _firestore!;
+  }
 
   static CollectionReference get users => firestore.collection('users');
   static CollectionReference get agences => firestore.collection('agences');

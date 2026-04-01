@@ -244,8 +244,9 @@ class TicketService {
         </div>
         <div class="row">
             <span class="label">Poids:</span>
-            <span class="value">${colis.poids.toStringAsFixed(1)} kg</span>
+            <span class="value">${colis.poids != null ? colis.poids!.toStringAsFixed(1) : 'Non pesé'} ${colis.poids != null ? 'kg' : ''}</span>
         </div>
+        ${colis.valeurDeclaree != null ? '<div class="row"><span class="label">Valeur déclarée:</span><span class="value">${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA</span></div>' : ''}
         ${colis.dimensions != null ? '<div class="row"><span class="label">Dimensions:</span><span class="value">${colis.dimensions}</span></div>' : ''}
         ${colis.commentaire != null && colis.commentaire!.isNotEmpty ? '<div class="row"><span class="label">Commentaire:</span></div><div>${colis.commentaire}</div>' : ''}
     </div>
@@ -253,11 +254,9 @@ class TicketService {
     <!-- Tarification -->
     <div class="section">
         <div class="section-title">TARIFICATION</div>
-        <div class="row">
-            <span class="label">Tarif base:</span>
-            <span class="value">${colis.montantTarif.toStringAsFixed(0)} FCFA</span>
-        </div>
-        ${colis.tarifAgenceTransport != null && colis.tarifAgenceTransport! > 0 ? '<div class="row"><span class="label">Frais transport:</span><span class="value">${colis.tarifAgenceTransport!.toStringAsFixed(0)} FCFA</span></div>' : ''}
+        ${colis.fraisLivraison > 0 ? '<div class="row"><span class="label">Frais de livraison:</span><span class="value">${colis.fraisLivraison.toStringAsFixed(0)} FCFA</span></div>' : ''}
+        ${colis.fraisCollecte > 0 ? '<div class="row"><span class="label">Frais de collecte:</span><span class="value">${colis.fraisCollecte.toStringAsFixed(0)} FCFA</span></div>' : ''}
+        ${colis.commissionVente > 0 ? '<div class="row"><span class="label">Commission vente:</span><span class="value">${colis.commissionVente.toStringAsFixed(0)} FCFA</span></div>' : ''}
     </div>
 
     <!-- Total -->
@@ -446,7 +445,8 @@ ${colis.destinataireVille}
 
 DETAILS COLIS:
 Contenu: ${colis.contenu}
-Poids: ${colis.poids.toStringAsFixed(1)} kg
+Poids: ${colis.poids != null ? colis.poids!.toStringAsFixed(1) : 'Non pesé'} ${colis.poids != null ? 'kg' : ''}
+${colis.valeurDeclaree != null ? 'Valeur déclarée: ${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA' : ''}
 ${colis.dimensions != null ? 'Dimensions: ${colis.dimensions}' : ''}
 
 TARIFICATION:

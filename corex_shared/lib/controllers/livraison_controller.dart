@@ -54,6 +54,7 @@ class LivraisonController extends GetxController {
   Future<void> attribuerLivraison({
     required ColisModel colis,
     required UserModel coursier,
+    required String typeLivraison, // expedition, recuperation, livraison_finale
     bool paiementALaLivraison = false,
     double? montantACollecte,
   }) async {
@@ -84,18 +85,35 @@ class LivraisonController extends GetxController {
         zone: colis.zoneId!,
         dateCreation: DateTime.now(),
         statut: 'enAttente',
+        typeLivraison: typeLivraison,
         paiementALaLivraison: paiementALaLivraison,
         montantACollecte: montantACollecte,
       );
 
       await _livraisonService.createLivraison(livraison);
 
+      // Déterminer le message selon le type de livraison
+      String messageType = '';
+      switch (typeLivraison) {
+        case 'expedition':
+          messageType = 'Expédition vers agence de transport';
+          break;
+        case 'recuperation':
+          messageType = 'Récupération depuis agence de transport';
+          break;
+        case 'livraison_finale':
+          messageType = 'Livraison finale au destinataire';
+          break;
+        default:
+          messageType = 'Livraison';
+      }
+
       // Mettre à jour le statut du colis en "enCoursLivraison"
       await _colisService.updateStatut(
         colis.id,
         'enCoursLivraison',
         user.id,
-        'Livraison attribuée à ${coursier.nomComplet}${paiementALaLivraison ? " (Paiement à la livraison)" : ""}',
+        '$messageType attribuée à ${coursier.nomComplet}${paiementALaLivraison ? " (Paiement à la livraison)" : ""}',
       );
 
       // Ajouter le coursier au colis
@@ -105,7 +123,7 @@ class LivraisonController extends GetxController {
 
       Get.snackbar(
         'Succès',
-        'Livraison attribuée à ${coursier.nomComplet}${paiementALaLivraison ? "\nPaiement à collecter: ${montantACollecte?.toStringAsFixed(0)} FCFA" : ""}',
+        '$messageType attribuée à ${coursier.nomComplet}${paiementALaLivraison ? "\nPaiement à collecter: ${montantACollecte?.toStringAsFixed(0)} FCFA" : ""}',
         snackPosition: SnackPosition.BOTTOM,
         duration: const Duration(seconds: 3),
       );

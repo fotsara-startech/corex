@@ -4,7 +4,12 @@ import '../services/transaction_service.dart';
 import 'auth_controller.dart';
 
 class TransactionController extends GetxController {
-  final TransactionService _transactionService = Get.find<TransactionService>();
+  TransactionService? _transactionService;
+
+  TransactionService get transactionService {
+    _transactionService ??= Get.find<TransactionService>();
+    return _transactionService!;
+  }
 
   final RxList<TransactionModel> transactionsList = <TransactionModel>[].obs;
   final RxDouble soldeActuel = 0.0.obs;
@@ -24,7 +29,7 @@ class TransactionController extends GetxController {
 
       if (agenceId == null) return;
 
-      transactionsList.value = await _transactionService.getTransactionsByAgence(agenceId);
+      transactionsList.value = await transactionService.getTransactionsByAgence(agenceId);
       _calculateSolde();
     } catch (e) {
       Get.snackbar('Erreur', 'Impossible de charger les transactions');
@@ -43,7 +48,7 @@ class TransactionController extends GetxController {
 
   Future<void> createTransaction(TransactionModel transaction) async {
     try {
-      await _transactionService.createTransaction(transaction);
+      await transactionService.createTransaction(transaction);
       Get.snackbar('Succès', 'Transaction enregistrée');
       await loadTransactions();
     } catch (e) {
@@ -59,7 +64,7 @@ class TransactionController extends GetxController {
 
       if (agenceId == null) return [];
 
-      return await _transactionService.getTransactionsByPeriod(agenceId, debut, fin);
+      return await transactionService.getTransactionsByPeriod(agenceId, debut, fin);
     } catch (e) {
       Get.snackbar('Erreur', 'Impossible de charger les transactions');
       return [];
@@ -74,7 +79,7 @@ class TransactionController extends GetxController {
 
       if (agenceId == null) return {'recettes': 0, 'depenses': 0, 'solde': 0};
 
-      return await _transactionService.getBilanAgence(agenceId, debut, fin);
+      return await transactionService.getBilanAgence(agenceId, debut, fin);
     } catch (e) {
       Get.snackbar('Erreur', 'Impossible de calculer le bilan');
       return {'recettes': 0, 'depenses': 0, 'solde': 0};

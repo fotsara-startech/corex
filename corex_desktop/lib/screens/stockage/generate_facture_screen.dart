@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:corex_shared/controllers/stockage_controller.dart';
 import 'package:corex_shared/models/client_model.dart';
-import 'package:corex_shared/models/depot_model.dart';
 import 'package:intl/intl.dart';
 
 class GenerateFactureScreen extends StatefulWidget {
@@ -15,6 +14,7 @@ class GenerateFactureScreen extends StatefulWidget {
 class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
+  final _montantController = TextEditingController();
 
   ClientModel? _selectedClient;
   DateTime _periodeDebut = DateTime.now().subtract(const Duration(days: 30));
@@ -25,6 +25,7 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
   @override
   void dispose() {
     _notesController.dispose();
+    _montantController.dispose();
     super.dispose();
   }
 
@@ -53,10 +54,20 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
   }
 
   double _calculateTotal() {
+    // Utiliser le montant saisi manuellement s'il est rempli
+    final saisie = double.tryParse(_montantController.text.replaceAll(' ', ''));
+    if (saisie != null) return saisie;
+    // Sinon calculer depuis les tarifs des dépôts
     final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     final depots = controller.depotsList.where((d) => _selectedDepots.contains(d.id)).toList();
-
     return depots.fold(0.0, (sum, depot) => sum + depot.tarifMensuel);
+  }
+
+  void _updateMontantFromDepots() {
+    final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
+    final depots = controller.depotsList.where((d) => _selectedDepots.contains(d.id)).toList();
+    final total = depots.fold(0.0, (sum, depot) => sum + depot.tarifMensuel);
+    _montantController.text = total.toStringAsFixed(0);
   }
 
   Future<void> _generateFacture() async {
@@ -74,13 +85,15 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
 
     setState(() => _isLoading = true);
 
+    final montant = double.tryParse(_montantController.text.replaceAll(' ', '')) ?? _calculateTotal();
+
     final controller = Get.isRegistered<StockageController>() ? Get.find<StockageController>() : Get.put(StockageController(), permanent: true);
     final success = await controller.generateFactureMensuelle(
       _selectedClient!.id,
       _selectedDepots.toList(),
       _periodeDebut,
       _periodeFin,
-      _calculateTotal(),
+      montant,
       _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
     );
 
@@ -231,14 +244,11 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
                                   } else {
                                     _selectedDepots.remove(depot.id);
                                   }
+                                  _updateMontantFromDepots();
                                 });
                               },
-                              title: Text(
-                                'Dépôt du ${DateFormat('dd/MM/yyyy').format(depot.dateDepot)}',
-                              ),
-                              subtitle: Text(
-                                '${depot.emplacement} - ${NumberFormat('#,###').format(depot.tarifMensuel)} FCFA/mois',
-                              ),
+                              title: Text('Dépôt du ${DateFormat('dd/MM/yyyy').format(depot.dateDepot)}'),
+                              subtitle: Text('${depot.emplacement} - ${NumberFormat('#,###').format(depot.tarifMensuel)} FCFA/mois'),
                             );
                           }).toList(),
                         );
@@ -260,25 +270,33 @@ class _GenerateFactureScreenState extends State<GenerateFactureScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Montant total
+            // Montant total éditable
             Card(
               color: Colors.green[50],
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Montant total:',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      '${NumberFormat('#,###').format(_calculateTotal())} FCFA',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                    const Text('Montant de la facture', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    const Text('Modifiable manuellement — calculé automatiquement depuis les tarifs des dépôts sélectionnés.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _montantController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
+                      decoration: const InputDecoration(
+                        suffixText: 'FCFA',
+                        suffixStyle: TextStyle(fontSize: 16, color: Colors.green),
+                        border: OutlineInputBorder(),
+                        hintText: '0',
                       ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Saisissez un montant';
+                        if (double.tryParse(v.replaceAll(' ', '')) == null) return 'Montant invalide';
+                        return null;
+                      },
                     ),
                   ],
                 ),

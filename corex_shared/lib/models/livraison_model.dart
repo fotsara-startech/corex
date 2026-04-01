@@ -18,6 +18,7 @@ class LivraisonModel {
   final double? montantACollecte; // Montant à collecter à la livraison
   final bool paiementCollecte; // Si le paiement a été collecté
   final DateTime? datePaiementCollecte; // Date de collecte du paiement
+  final String typeLivraison; // expedition, recuperation, livraison_finale
 
   LivraisonModel({
     required this.id,
@@ -37,6 +38,7 @@ class LivraisonModel {
     this.montantACollecte,
     this.paiementCollecte = false,
     this.datePaiementCollecte,
+    this.typeLivraison = 'livraison_finale', // Par défaut: livraison finale
   });
 
   factory LivraisonModel.fromFirestore(DocumentSnapshot doc) {
@@ -59,6 +61,7 @@ class LivraisonModel {
       montantACollecte: data['montantACollecte'] != null ? (data['montantACollecte'] as num).toDouble() : null,
       paiementCollecte: data['paiementCollecte'] ?? false,
       datePaiementCollecte: data['datePaiementCollecte'] != null ? (data['datePaiementCollecte'] as Timestamp).toDate() : null,
+      typeLivraison: data['typeLivraison'] ?? 'livraison_finale',
     );
   }
 
@@ -80,6 +83,7 @@ class LivraisonModel {
       'montantACollecte': montantACollecte,
       'paiementCollecte': paiementCollecte,
       'datePaiementCollecte': datePaiementCollecte != null ? Timestamp.fromDate(datePaiementCollecte!) : null,
+      'typeLivraison': typeLivraison,
     };
   }
 }

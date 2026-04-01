@@ -96,6 +96,13 @@ class _HistoriqueTransactionsScreenState extends State<HistoriqueTransactionsScr
     }
   }
 
+  void _appliquerPeriode(DateTime debut, DateTime fin) {
+    setState(() {
+      _dateDebut = debut;
+      _dateFin = fin;
+    });
+  }
+
   void _resetFilters() {
     setState(() {
       _dateDebut = null;
@@ -103,6 +110,94 @@ class _HistoriqueTransactionsScreenState extends State<HistoriqueTransactionsScr
       _typeFiltre = null;
       _categorieFiltre = null;
     });
+  }
+
+  List<Widget> _buildPeriodeChips() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    final periodes = [
+      (
+        "Aujourd'hui",
+        today,
+        endOfToday,
+      ),
+      (
+        'Hier',
+        today.subtract(const Duration(days: 1)),
+        DateTime(now.year, now.month, now.day - 1, 23, 59, 59),
+      ),
+      (
+        'Cette semaine',
+        today.subtract(Duration(days: now.weekday - 1)),
+        endOfToday,
+      ),
+      (
+        'Semaine dernière',
+        today.subtract(Duration(days: now.weekday + 6)),
+        today.subtract(Duration(days: now.weekday)).copyWith(hour: 23, minute: 59, second: 59),
+      ),
+      (
+        'Ce mois',
+        DateTime(now.year, now.month, 1),
+        endOfToday,
+      ),
+      (
+        'Mois dernier',
+        DateTime(now.year, now.month - 1, 1),
+        DateTime(now.year, now.month, 1).subtract(const Duration(seconds: 1)),
+      ),
+      (
+        'Cette année',
+        DateTime(now.year, 1, 1),
+        endOfToday,
+      ),
+      (
+        'Année dernière',
+        DateTime(now.year - 1, 1, 1),
+        DateTime(now.year, 1, 1).subtract(const Duration(seconds: 1)),
+      ),
+    ];
+
+    return periodes.map((p) {
+      final label = p.$1;
+      final debut = p.$2;
+      final fin = p.$3;
+      final isActive = _dateDebut != null &&
+          _dateFin != null &&
+          _dateDebut!.year == debut.year &&
+          _dateDebut!.month == debut.month &&
+          _dateDebut!.day == debut.day &&
+          _dateFin!.year == fin.year &&
+          _dateFin!.month == fin.month &&
+          _dateFin!.day == fin.day;
+
+      return Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: GestureDetector(
+          onTap: () => _appliquerPeriode(debut, fin),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isActive ? const Color(0xFF2E7D32) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isActive ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? Colors.white : Colors.grey.shade700,
+              ),
+            ),
+          ),
+        ),
+      );
+    }).toList();
   }
 
   @override
@@ -125,6 +220,14 @@ class _HistoriqueTransactionsScreenState extends State<HistoriqueTransactionsScr
               color: Colors.grey.shade100,
               child: Column(
                 children: [
+                  // Périodes prédéfinies
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _buildPeriodeChips(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(

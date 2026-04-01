@@ -65,10 +65,18 @@ class ColisModel {
   final String destinataireVille;
   final String? destinataireQuartier;
   final String contenu;
-  final double poids;
+  final double? poids;
   final String? dimensions;
-  final double montantTarif;
+  final double? valeurDeclaree;
+  final double montantTarif; // Total = fraisLivraison + fraisCollecte + commissionVente
+  final double fraisLivraison; // Ce que Corex encaisse pour le service de livraison
+  final double fraisCollecte; // Montant collecté pour le compte du vendeur (à reverser)
+  final double commissionVente; // Commission optionnelle payée à Corex comme intermédiaire
+  final double montantDejaPaye; // Montant déjà encaissé (en cas de paiement partiel)
   final bool isPaye;
+
+  /// Montant restant à payer (0 si entièrement payé)
+  double get resteAPayer => isPaye ? 0 : (montantTarif - montantDejaPaye).clamp(0, double.infinity);
   final DateTime? datePaiement;
   final String modeLivraison;
   final String? zoneId;
@@ -102,9 +110,14 @@ class ColisModel {
     required this.destinataireVille,
     this.destinataireQuartier,
     required this.contenu,
-    required this.poids,
+    this.poids,
     this.dimensions,
+    this.valeurDeclaree,
     required this.montantTarif,
+    this.fraisLivraison = 0,
+    this.fraisCollecte = 0,
+    this.commissionVente = 0,
+    this.montantDejaPaye = 0,
     required this.isPaye,
     this.datePaiement,
     required this.modeLivraison,
@@ -142,9 +155,14 @@ class ColisModel {
       destinataireVille: data['destinataireVille'] ?? '',
       destinataireQuartier: data['destinataireQuartier'],
       contenu: data['contenu'] ?? '',
-      poids: (data['poids'] ?? 0).toDouble(),
+      poids: data['poids']?.toDouble(),
       dimensions: data['dimensions'],
+      valeurDeclaree: data['valeurDeclaree']?.toDouble(),
       montantTarif: (data['montantTarif'] ?? 0).toDouble(),
+      fraisLivraison: (data['fraisLivraison'] ?? 0).toDouble(),
+      fraisCollecte: (data['fraisCollecte'] ?? 0).toDouble(),
+      commissionVente: (data['commissionVente'] ?? 0).toDouble(),
+      montantDejaPaye: (data['montantDejaPaye'] ?? 0).toDouble(),
       isPaye: data['isPaye'] ?? false,
       datePaiement: _parseDateTime(data['datePaiement']),
       modeLivraison: data['modeLivraison'] ?? '',
@@ -202,7 +220,12 @@ class ColisModel {
       'contenu': contenu,
       'poids': poids,
       'dimensions': dimensions,
+      'valeurDeclaree': valeurDeclaree,
       'montantTarif': montantTarif,
+      'fraisLivraison': fraisLivraison,
+      'fraisCollecte': fraisCollecte,
+      'commissionVente': commissionVente,
+      'montantDejaPaye': montantDejaPaye,
       'isPaye': isPaye,
       'datePaiement': datePaiement != null ? Timestamp.fromDate(datePaiement!) : null,
       'modeLivraison': modeLivraison,
@@ -242,7 +265,12 @@ class ColisModel {
     String? contenu,
     double? poids,
     String? dimensions,
+    double? valeurDeclaree,
     double? montantTarif,
+    double? fraisLivraison,
+    double? fraisCollecte,
+    double? commissionVente,
+    double? montantDejaPaye,
     bool? isPaye,
     DateTime? datePaiement,
     String? modeLivraison,
@@ -279,7 +307,12 @@ class ColisModel {
       contenu: contenu ?? this.contenu,
       poids: poids ?? this.poids,
       dimensions: dimensions ?? this.dimensions,
+      valeurDeclaree: valeurDeclaree ?? this.valeurDeclaree,
       montantTarif: montantTarif ?? this.montantTarif,
+      fraisLivraison: fraisLivraison ?? this.fraisLivraison,
+      fraisCollecte: fraisCollecte ?? this.fraisCollecte,
+      commissionVente: commissionVente ?? this.commissionVente,
+      montantDejaPaye: montantDejaPaye ?? this.montantDejaPaye,
       isPaye: isPaye ?? this.isPaye,
       datePaiement: datePaiement ?? this.datePaiement,
       modeLivraison: modeLivraison ?? this.modeLivraison,

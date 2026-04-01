@@ -12,11 +12,12 @@ import '../suivi/suivi_colis_screen.dart';
 import '../livraisons/attribution_livraison_screen.dart';
 import '../livraisons/suivi_livraisons_screen.dart';
 import '../coursier/mes_livraisons_screen.dart';
+import '../coursier/mes_courses_screen.dart';
+import '../coursier/coursier_dashboard_screen.dart';
 import '../stockage/clients_stockeurs_screen.dart';
 import '../stockage/factures_stockage_screen.dart';
 import '../courses/courses_list_screen.dart';
 import '../courses/suivi_courses_screen.dart';
-import '../coursier/mes_courses_screen.dart';
 import '../pdg/pdg_dashboard_screen.dart';
 import '../../widgets/connection_indicator.dart';
 import '../../widgets/corex_logo.dart';
@@ -39,24 +40,31 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const CorexLogo(
-          height: 40,
+          height: 36,
           showText: true,
           textColor: Colors.white,
         ),
         actions: [
           const ConnectionIndicator(),
-          const SizedBox(width: 16),
-          Obx(() {
-            final user = authController.currentUser.value;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Center(
-                child: Text(
-                  user != null ? user.nomComplet : '',
-                  style: const TextStyle(fontSize: 14),
+          // Nom utilisateur — masqué sur petit écran
+          LayoutBuilder(builder: (context, constraints) {
+            // On utilise MediaQuery pour détecter la largeur
+            final screenWidth = MediaQuery.of(context).size.width;
+            if (screenWidth < 500) return const SizedBox.shrink();
+            return Obx(() {
+              final user = authController.currentUser.value;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Center(
+                  child: Text(
+                    user != null ? user.nomComplet : '',
+                    style: const TextStyle(fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 ),
-              ),
-            );
+              );
+            });
           }),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -84,6 +92,11 @@ class HomeScreen extends StatelessWidget {
         // Si l'utilisateur est PDG ou admin, afficher le dashboard PDG
         if (user.role == 'pdg' || user.role == 'admin') {
           return const PdgDashboardScreen(isEmbedded: true);
+        }
+
+        // Dashboard dédié pour les coursiers
+        if (user.role == 'coursier') {
+          return const CoursierDashboardScreen();
         }
 
         // Sinon, afficher l'interface standard pour les employés
@@ -155,20 +168,20 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                         // Tableau de bord PDG - Accès spécial
-                        if (user?.role == 'pdg' || user?.role == 'admin')
-                          ListTile(
-                            leading: const Icon(Icons.analytics, color: Color(0xFF6C5CE7)),
-                            title: const Text(
-                              'Tableau de Bord PDG',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF6C5CE7),
-                              ),
-                            ),
-                            onTap: () => _navigateAfterDrawerClose(() {
-                              Get.toNamed('/pdg/dashboard');
-                            }),
-                          ),
+                        // if (user?.role == 'pdg' || user?.role == 'admin')
+                        //   ListTile(
+                        //     leading: const Icon(Icons.analytics, color: Color(0xFF6C5CE7)),
+                        //     title: const Text(
+                        //       'Tableau de Bord PDG',
+                        //       style: TextStyle(
+                        //         fontWeight: FontWeight.bold,
+                        //         color: Color(0xFF6C5CE7),
+                        //       ),
+                        //     ),
+                        //     onTap: () => _navigateAfterDrawerClose(() {
+                        //       Get.toNamed('/pdg/dashboard');
+                        //     }),
+                        //   ),
                         // Validation des demandes clients - Nouveau
                         if (user?.role == 'gestionnaire' || user?.role == 'admin')
                           ListTile(
@@ -351,6 +364,21 @@ class HomeScreen extends StatelessWidget {
                           }),
                         ),
                       ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
+
+                // Section Devis
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role == 'gestionnaire' || user?.role == 'admin' || user?.role == 'commercial' || user?.role == 'pdg') {
+                    return ListTile(
+                      leading: const Icon(Icons.request_quote),
+                      title: const Text('Devis'),
+                      onTap: () => _navigateAfterDrawerClose(() {
+                        Get.toNamed('/devis');
+                      }),
                     );
                   }
                   return const SizedBox.shrink();

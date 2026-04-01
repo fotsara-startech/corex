@@ -4,7 +4,7 @@ import '../services/zone_service.dart';
 import 'auth_controller.dart';
 
 class ZoneController extends GetxController {
-  final ZoneService _zoneService = Get.find<ZoneService>();
+  late final ZoneService _zoneService;
 
   final RxList<ZoneModel> zonesList = <ZoneModel>[].obs;
   final Rx<ZoneModel?> selectedZone = Rx<ZoneModel?>(null);
@@ -15,6 +15,14 @@ class ZoneController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // Initialiser le service de manière sécurisée
+    if (!Get.isRegistered<ZoneService>()) {
+      print('⚠️ [ZONE_CONTROLLER] ZoneService non trouvé, initialisation...');
+      Get.put(ZoneService(), permanent: true);
+    }
+    _zoneService = Get.find<ZoneService>();
+
     loadZones();
 
     // Écouter les changements de filtres

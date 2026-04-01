@@ -1,0 +1,1 @@
+ build\\web\\manifest.json:  D:\\projects\\corex\\corex_client_web\\web\\index.html D:\\projects\\corex\\corex_client_web\\web\\manifest.json

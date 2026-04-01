@@ -8,8 +8,8 @@ import '../services/client_service.dart';
 import 'auth_controller.dart';
 
 class StockageController extends GetxController {
-  final StockageService _stockageService = Get.find<StockageService>();
-  final ClientService _clientService = Get.find<ClientService>();
+  late final StockageService _stockageService;
+  late final ClientService _clientService;
 
   final RxList<ClientModel> clientsStockeurs = <ClientModel>[].obs;
   final RxList<DepotModel> depotsList = <DepotModel>[].obs;
@@ -23,9 +23,25 @@ class StockageController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Ne pas charger automatiquement car l'utilisateur n'est pas encore connecté
-    // Les écrans appelleront loadClientsStockeurs() et loadDepots() quand nécessaire
-    print('📦 [STOCKAGE_CONTROLLER] Contrôleur initialisé (chargement différé)');
+
+    // Initialiser les services de manière sécurisée
+    try {
+      if (!Get.isRegistered<StockageService>()) {
+        print('⚠️ [STOCKAGE_CONTROLLER] StockageService non trouvé, initialisation...');
+        Get.put(StockageService(), permanent: true);
+      }
+      _stockageService = Get.find<StockageService>();
+
+      if (!Get.isRegistered<ClientService>()) {
+        print('⚠️ [STOCKAGE_CONTROLLER] ClientService non trouvé, initialisation...');
+        Get.put(ClientService(), permanent: true);
+      }
+      _clientService = Get.find<ClientService>();
+
+      print('📦 [STOCKAGE_CONTROLLER] Contrôleur initialisé (chargement différé)');
+    } catch (e) {
+      print('❌ [STOCKAGE_CONTROLLER] Erreur initialisation services: $e');
+    }
   }
 
   // ========== CLIENTS STOCKEURS ==========
@@ -138,6 +154,20 @@ class StockageController extends GetxController {
     } catch (e) {
       print('❌ [STOCKAGE_CONTROLLER] Erreur recherche: $e');
       return null;
+    }
+  }
+
+  Future<List<ClientModel>> searchClientsMultiCriteria(String query) async {
+    try {
+      final authController = Get.find<AuthController>();
+      final user = authController.currentUser.value;
+
+      if (user == null || user.agenceId == null) return [];
+
+      return await _clientService.searchClientsMultiCriteria(query, user.agenceId!);
+    } catch (e) {
+      print('❌ [STOCKAGE_CONTROLLER] Erreur recherche multi-critères: $e');
+      return [];
     }
   }
 
@@ -269,6 +299,28 @@ class StockageController extends GetxController {
     } catch (e) {
       print('❌ [STOCKAGE_CONTROLLER] Erreur création retrait: $e');
       Get.snackbar('Erreur', 'Impossible d\'enregistrer le retrait');
+      return false;
+    }
+  }
+
+  Future<bool> deleteDepot(String depotId) async {
+    try {
+      await _stockageService.deleteDepot(depotId);
+      Get.snackbar('Succès', 'Dépôt supprimé');
+      return true;
+    } catch (e) {
+      Get.snackbar('Erreur', 'Impossible de supprimer le dépôt');
+      return false;
+    }
+  }
+
+  Future<bool> deleteMouvement(String mouvementId) async {
+    try {
+      await _stockageService.deleteMouvement(mouvementId);
+      Get.snackbar('Succès', 'Mouvement supprimé');
+      return true;
+    } catch (e) {
+      Get.snackbar('Erreur', 'Impossible de supprimer le mouvement');
       return false;
     }
   }

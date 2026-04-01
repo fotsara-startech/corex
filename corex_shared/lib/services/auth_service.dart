@@ -5,20 +5,32 @@ import '../models/user_model.dart';
 import 'firebase_service.dart';
 
 class AuthService extends GetxService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseAuth? _auth;
 
-  User? get currentFirebaseUser => _auth.currentUser;
+  FirebaseAuth get auth {
+    _auth ??= FirebaseAuth.instance;
+    return _auth!;
+  }
+
+  User? get currentFirebaseUser {
+    try {
+      return auth.currentUser;
+    } catch (e) {
+      print('⚠️ [AUTH] Erreur accès Firebase Auth: $e');
+      return null;
+    }
+  }
 
   Future<UserModel> signIn(String email, String password) async {
     try {
       print('🔐 [AUTH] Tentative de connexion pour: $email');
 
       // Vérifier que Firebase Auth est disponible
-      if (_auth.app.options.projectId.isEmpty) {
+      if (auth.app.options.projectId.isEmpty) {
         throw Exception('Firebase Auth non initialisé correctement');
       }
 
-      final credential = await _auth.signInWithEmailAndPassword(
+      final credential = await auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -33,7 +45,7 @@ class AuthService extends GetxService {
 
       if (!userDoc.exists) {
         print('❌ [FIRESTORE] Utilisateur non trouvé dans Firestore');
-        await _auth.signOut();
+        await auth.signOut();
         throw Exception('Utilisateur non trouvé dans la base de données');
       }
 
@@ -44,7 +56,7 @@ class AuthService extends GetxService {
 
       if (!user.isActive) {
         print('❌ [USER] Compte désactivé');
-        await _auth.signOut();
+        await auth.signOut();
         throw Exception('Compte désactivé. Contactez l\'administrateur');
       }
 
@@ -67,7 +79,7 @@ class AuthService extends GetxService {
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
+    await auth.signOut();
   }
 
   Future<UserModel> createUser({
@@ -80,7 +92,7 @@ class AuthService extends GetxService {
     String? agenceId,
   }) async {
     try {
-      final credential = await _auth.createUserWithEmailAndPassword(
+      final credential = await auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -109,7 +121,7 @@ class AuthService extends GetxService {
 
   Future<void> resetPassword(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      await auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
@@ -117,7 +129,7 @@ class AuthService extends GetxService {
 
   Future<void> updatePassword(String newPassword) async {
     try {
-      await _auth.currentUser?.updatePassword(newPassword);
+      await auth.currentUser?.updatePassword(newPassword);
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }

@@ -116,7 +116,8 @@ class DetailsColisScreen extends StatelessWidget {
             icon: Icons.inventory_2,
             children: [
               _buildInfoRow('Contenu', colis.contenu),
-              _buildInfoRow('Poids', '${colis.poids} kg'),
+              if (colis.poids != null) _buildInfoRow('Poids', '${colis.poids} kg'),
+              if (colis.valeurDeclaree != null) _buildInfoRow('Valeur déclarée', '${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA'),
               _buildInfoRow('Tarif', '${colis.montantTarif.toStringAsFixed(0)} FCFA'),
               _buildInfoRow(
                 'Paiement',

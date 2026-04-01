@@ -248,8 +248,9 @@ $bodyContent
         </div>
         <div class="row">
             <span class="label">Poids:</span>
-            <span class="value">${colis.poids.toStringAsFixed(1)} kg</span>
+            <span class="value">${colis.poids != null ? colis.poids!.toStringAsFixed(1) : 'Non pesé'} ${colis.poids != null ? 'kg' : ''}</span>
         </div>
+        ${colis.valeurDeclaree != null ? '<div class="row"><span class="label">Valeur déclarée:</span><span class="value">${colis.valeurDeclaree!.toStringAsFixed(0)} FCFA</span></div>' : ''}
         ${colis.dimensions != null ? '<div class="row"><span class="label">Dimensions:</span><span class="value">${colis.dimensions}</span></div>' : ''}
         ${colis.commentaire != null && colis.commentaire!.isNotEmpty ? '<div class="row"><span class="label">Commentaire:</span></div><div>${colis.commentaire}</div>' : ''}
     </div>
