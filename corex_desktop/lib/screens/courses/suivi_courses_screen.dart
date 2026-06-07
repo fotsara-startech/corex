@@ -164,51 +164,57 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: Obx(() => DropdownButtonFormField<String>(
-                        value: _courseController?.filterStatut.value ?? 'tous',
-                        decoration: const InputDecoration(
-                          labelText: 'Filtrer par statut',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.filter_list),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'tous', child: Text('Tous')),
-                          DropdownMenuItem(value: 'enAttente', child: Text('En Attente')),
-                          DropdownMenuItem(value: 'enCours', child: Text('En Cours')),
-                          DropdownMenuItem(value: 'terminee', child: Text('Terminées')),
-                          DropdownMenuItem(value: 'annulee', child: Text('Annulées')),
-                        ],
-                        onChanged: (value) {
-                          if (value != null && _courseController != null) {
-                            _courseController!.filterStatut.value = value;
-                          }
-                        },
-                      )),
+                  child: Obx(() {
+                    final statut = _courseController?.filterStatut.value ?? 'tous';
+                    return DropdownButtonFormField<String>(
+                      initialValue: statut,
+                      decoration: const InputDecoration(
+                        labelText: 'Filtrer par statut',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.filter_list),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'tous', child: Text('Tous')),
+                        DropdownMenuItem(value: 'enAttente', child: Text('En Attente')),
+                        DropdownMenuItem(value: 'enCours', child: Text('En Cours')),
+                        DropdownMenuItem(value: 'terminee', child: Text('Terminées')),
+                        DropdownMenuItem(value: 'annulee', child: Text('Annulées')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null && _courseController != null) {
+                          _courseController!.filterStatut.value = value;
+                        }
+                      },
+                    );
+                  }),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Obx(() => DropdownButtonFormField<String>(
-                        value: _courseController?.filterCoursier.value ?? 'tous',
-                        decoration: const InputDecoration(
-                          labelText: 'Filtrer par commissionnaire',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.person),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: 'tous', child: Text('Tous')),
-                          ..._coursiers.map((coursier) {
-                            return DropdownMenuItem(
-                              value: coursier.id,
-                              child: Text(coursier.nomComplet),
-                            );
-                          }),
-                        ],
-                        onChanged: (value) {
-                          if (value != null && _courseController != null) {
-                            _courseController!.filterCoursier.value = value;
-                          }
-                        },
-                      )),
+                  child: Obx(() {
+                    final coursier = _courseController?.filterCoursier.value ?? 'tous';
+                    return DropdownButtonFormField<String>(
+                      initialValue: coursier,
+                      decoration: const InputDecoration(
+                        labelText: 'Filtrer par commissionnaire',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: 'tous', child: Text('Tous')),
+                        ..._coursiers.map((coursier) {
+                          return DropdownMenuItem(
+                            value: coursier.id,
+                            child: Text(coursier.nomComplet),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        if (value != null && _courseController != null) {
+                          _courseController!.filterCoursier.value = value;
+                        }
+                      },
+                    );
+                  }),
                 ),
               ],
             ),

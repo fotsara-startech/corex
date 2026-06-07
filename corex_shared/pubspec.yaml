@@ -21,7 +21,7 @@ dependencies:
   
   # Utilities (versions compatibles clincflow)
   uuid: ^4.2.1
-  intl: ^0.19.0
+  intl: ^0.20.0
   
   # PDF & Printing (versions compatibles clincflow)
   pdf: ^3.10.5

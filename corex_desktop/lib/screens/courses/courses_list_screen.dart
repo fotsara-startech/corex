@@ -177,26 +177,29 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: Obx(() => DropdownButtonFormField<String>(
-                        value: _courseController?.filterStatut.value ?? 'tous',
-                        decoration: const InputDecoration(
-                          labelText: 'Filtrer par statut',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.filter_list),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'tous', child: Text('Tous')),
-                          DropdownMenuItem(value: 'enAttente', child: Text('En Attente')),
-                          DropdownMenuItem(value: 'enCours', child: Text('En Cours')),
-                          DropdownMenuItem(value: 'terminee', child: Text('Terminées')),
-                          DropdownMenuItem(value: 'annulee', child: Text('Annulées')),
-                        ],
-                        onChanged: (value) {
-                          if (value != null && _courseController != null) {
-                            _courseController!.filterStatut.value = value;
-                          }
-                        },
-                      )),
+                  child: Obx(() {
+                    final statut = _courseController?.filterStatut.value ?? 'tous';
+                    return DropdownButtonFormField<String>(
+                      initialValue: statut,
+                      decoration: const InputDecoration(
+                        labelText: 'Filtrer par statut',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.filter_list),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'tous', child: Text('Tous')),
+                        DropdownMenuItem(value: 'enAttente', child: Text('En Attente')),
+                        DropdownMenuItem(value: 'enCours', child: Text('En Cours')),
+                        DropdownMenuItem(value: 'terminee', child: Text('Terminées')),
+                        DropdownMenuItem(value: 'annulee', child: Text('Annulées')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null && _courseController != null) {
+                          _courseController!.filterStatut.value = value;
+                        }
+                      },
+                    );
+                  }),
                 ),
               ],
             ),

@@ -177,7 +177,9 @@ class TicketPrintService {
                           pw.Text('${colis.fraisLivraison.toStringAsFixed(0)} FCFA', style: const pw.TextStyle(fontSize: 9)),
                         ],
                       ),
-                    if (colis.fraisCollecte > 0) ...[
+                    // En mode agenceTransport, les frais d'expédition sont internes à COREX
+                    // On n'affiche pas le détail au client
+                    if (colis.fraisCollecte > 0 && colis.modeLivraison != 'agenceTransport') ...[
                       pw.SizedBox(height: 2),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -203,7 +205,11 @@ class TicketPrintService {
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Text('TOTAL A ENCAISSER:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                        pw.Text('${colis.montantTarif.toStringAsFixed(0)} FCFA', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                        // En mode agenceTransport, le client paie fraisLivraison (pas montantTarif qui est la recette COREX)
+                        pw.Text(
+                          '${(colis.modeLivraison == 'agenceTransport' ? colis.fraisLivraison : colis.montantTarif).toStringAsFixed(0)} FCFA',
+                          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+                        ),
                       ],
                     ),
                   ],

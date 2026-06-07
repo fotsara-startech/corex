@@ -181,7 +181,7 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
       final fraisLivraison = double.tryParse(_fraisLivraisonController.text) ?? 0;
       final fraisCollecte = double.tryParse(_fraisCollecteController.text) ?? 0;
       final commissionVente = double.tryParse(_commissionVenteController.text) ?? 0;
-      final montantTotal = fraisLivraison + fraisCollecte + commissionVente;
+      final montantTotal = _modeLivraison == 'agenceTransport' ? fraisLivraison - fraisCollecte + commissionVente : fraisLivraison + fraisCollecte + commissionVente;
 
       final colis = ColisModel(
         id: const Uuid().v4(),
@@ -265,14 +265,14 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
     }
   }
 
-  Widget _recapLigne(String label, String valeur, Color color, {bool bold = false}) {
+  Widget _recapLigne(String label, String valeur, Color color, {bool bold = false, bool isDeduction = false}) {
     final montant = double.tryParse(valeur) ?? 0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 13, color: color, fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
+          Text(isDeduction ? '− $label' : label, style: TextStyle(fontSize: 13, color: color, fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
           Text(
             '${montant.toStringAsFixed(0)} FCFA',
             style: TextStyle(fontSize: 13, color: color, fontWeight: bold ? FontWeight.bold : FontWeight.w500),
@@ -285,6 +285,7 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Collecte de Colis'),
         actions: [
@@ -310,6 +311,7 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
       body: Form(
         key: _formKey,
         child: Stepper(
+          physics: const ClampingScrollPhysics(),
           currentStep: _currentStep,
           onStepContinue: () {
             if (_currentStep < 3) {
@@ -605,13 +607,13 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Frais de collecte (montant de la vente à reverser au vendeur)
+                  // Frais de collecte (transit) OU Frais d'expédition (agence transport)
                   Card(
                     elevation: 0,
-                    color: Colors.orange.shade50,
+                    color: _modeLivraison == 'agenceTransport' ? Colors.red.shade50 : Colors.orange.shade50,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: Colors.orange.shade200),
+                      side: BorderSide(color: _modeLivraison == 'agenceTransport' ? Colors.red.shade200 : Colors.orange.shade200),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
@@ -620,13 +622,17 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.swap_horiz, color: Colors.orange.shade700, size: 18),
+                              Icon(
+                                _modeLivraison == 'agenceTransport' ? Icons.directions_bus : Icons.swap_horiz,
+                                color: _modeLivraison == 'agenceTransport' ? Colors.red.shade700 : Colors.orange.shade700,
+                                size: 18,
+                              ),
                               const SizedBox(width: 6),
                               Text(
-                                'Frais de collecte (transit)',
+                                _modeLivraison == 'agenceTransport' ? 'Frais d\'expédition' : 'Frais de collecte (transit)',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.orange.shade800,
+                                  color: _modeLivraison == 'agenceTransport' ? Colors.red.shade800 : Colors.orange.shade800,
                                   fontSize: 13,
                                 ),
                               ),
@@ -634,8 +640,13 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Montant collecté pour le compte du vendeur — à lui reverser. Ne rentre pas dans la caisse Corex.',
-                            style: TextStyle(fontSize: 12, color: Colors.orange.shade700),
+                            _modeLivraison == 'agenceTransport'
+                                ? 'Montant que COREX doit payer à l\'agence de transport pour l\'expédition du colis.'
+                                : 'Montant collecté pour le compte du vendeur — à lui reverser. Ne rentre pas dans la caisse Corex.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _modeLivraison == 'agenceTransport' ? Colors.red.shade700 : Colors.orange.shade700,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           TextFormField(
@@ -730,13 +741,23 @@ class _ColisCollecteScreenState extends State<ColisCollecteScreen> {
                           ),
                           const Divider(height: 20),
                           _recapLigne('Frais de livraison (Corex)', _fraisLivraisonController.text, Colors.green.shade700),
-                          _recapLigne('Frais de collecte (transit vendeur)', _fraisCollecteController.text, Colors.orange.shade700),
+                          if (_modeLivraison == 'agenceTransport')
+                            _recapLigne('Frais d\'expédition (agence)', _fraisCollecteController.text, Colors.red.shade700, isDeduction: true)
+                          else
+                            _recapLigne('Frais de collecte (transit vendeur)', _fraisCollecteController.text, Colors.orange.shade700),
                           _recapLigne('Commission vente', _commissionVenteController.text, Colors.purple.shade700),
                           const Divider(height: 16),
                           _recapLigne(
                             'Total à encaisser',
-                            ((double.tryParse(_fraisLivraisonController.text) ?? 0) + (double.tryParse(_fraisCollecteController.text) ?? 0) + (double.tryParse(_commissionVenteController.text) ?? 0))
-                                .toStringAsFixed(0),
+                            _modeLivraison == 'agenceTransport'
+                                ? ((double.tryParse(_fraisLivraisonController.text) ?? 0) -
+                                        (double.tryParse(_fraisCollecteController.text) ?? 0) +
+                                        (double.tryParse(_commissionVenteController.text) ?? 0))
+                                    .toStringAsFixed(0)
+                                : ((double.tryParse(_fraisLivraisonController.text) ?? 0) +
+                                        (double.tryParse(_fraisCollecteController.text) ?? 0) +
+                                        (double.tryParse(_commissionVenteController.text) ?? 0))
+                                    .toStringAsFixed(0),
                             Colors.blue.shade800,
                             bold: true,
                           ),

@@ -324,6 +324,7 @@ class SuiviController extends GetxController {
         numeroSuivi: colis.numeroSuivi,
         fraisCollecte: colis.fraisCollecte,
         estPaiementPartiel: montantOverride != null,
+        modeLivraison: colis.modeLivraison,
       );
 
       // Remettre montantDejaPaye à 0 après paiement complet

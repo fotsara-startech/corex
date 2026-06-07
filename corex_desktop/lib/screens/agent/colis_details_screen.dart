@@ -13,7 +13,7 @@ import 'package:corex_shared/services/colis_service.dart';
 import 'package:corex_shared/controllers/auth_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:corex_shared/services/ticket_print_service.dart';
-import 'enregistrement_colis_screen.dart';
+import '../home/home_screen.dart';
 
 class ColisDetailsScreen extends StatefulWidget {
   final ColisModel colis;
@@ -266,7 +266,14 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
 
             // Détail éclaté des frais
             if (widget.colis.fraisLivraison > 0) _buildFraisRow('Frais de livraison', widget.colis.fraisLivraison, Colors.green.shade700, isCorex: true),
-            if (widget.colis.fraisCollecte > 0) _buildFraisRow('Montant collecté (vendeur)', widget.colis.fraisCollecte, Colors.orange.shade700, isCorex: false),
+            if (widget.colis.fraisCollecte > 0)
+              _buildFraisRow(
+                widget.colis.modeLivraison == 'agenceTransport' ? 'Frais d\'expédition (agence)' : 'Montant collecté (vendeur)',
+                widget.colis.fraisCollecte,
+                widget.colis.modeLivraison == 'agenceTransport' ? Colors.red.shade700 : Colors.orange.shade700,
+                isCorex: widget.colis.modeLivraison == 'agenceTransport',
+                isDeduction: widget.colis.modeLivraison == 'agenceTransport',
+              ),
             if (widget.colis.commissionVente > 0) _buildFraisRow('Commission vente', widget.colis.commissionVente, Colors.purple.shade700, isCorex: true),
             const Divider(height: 16),
             _buildFraisRow('Total à encaisser', widget.colis.montantTarif, Colors.black87, bold: true),
@@ -323,7 +330,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
                         ),
                         if (_isPaye.value) ...[
                           const Divider(),
-                          if (widget.colis.fraisCollecte > 0) ...[
+                          if (widget.colis.fraisCollecte > 0 && widget.colis.modeLivraison != 'agenceTransport') ...[
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
@@ -364,7 +371,9 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
                                   ],
                                 ),
                                 Text(
-                                  '${(widget.colis.montantTarif - widget.colis.fraisCollecte).toStringAsFixed(0)} FCFA',
+                                  widget.colis.modeLivraison == 'agenceTransport'
+                                      ? '${widget.colis.montantTarif.toStringAsFixed(0)} FCFA'
+                                      : '${(widget.colis.montantTarif - widget.colis.fraisCollecte).toStringAsFixed(0)} FCFA',
                                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green.shade900),
                                 ),
                               ],
@@ -485,7 +494,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
     }
   }
 
-  Widget _buildFraisRow(String label, double montant, Color color, {bool bold = false, bool isCorex = true}) {
+  Widget _buildFraisRow(String label, double montant, Color color, {bool bold = false, bool isCorex = true, bool isDeduction = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -493,8 +502,11 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
         children: [
           Row(
             children: [
-              Text(label, style: TextStyle(fontSize: 13, color: color, fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
-              if (!isCorex) ...[
+              Text(
+                isDeduction ? '− $label' : label,
+                style: TextStyle(fontSize: 13, color: color, fontWeight: bold ? FontWeight.bold : FontWeight.normal),
+              ),
+              if (!isCorex && !isDeduction) ...[
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -563,7 +575,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
           id: const Uuid().v4(),
           agenceId: user.agenceId!,
           type: 'recette',
-          montant: widget.colis.montantTarif - widget.colis.fraisCollecte,
+          montant: widget.colis.modeLivraison == 'agenceTransport' ? widget.colis.montantTarif : widget.colis.montantTarif - widget.colis.fraisCollecte,
           date: DateTime.now(),
           categorieRecette: 'expedition',
           description: 'Enregistrement colis $numeroSuivi - ${widget.colis.destinataireNom}',
@@ -591,7 +603,12 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
         await _imprimerTicketAvecSelection(colisUpdated);
       }
 
-      // 8. Afficher le message de succès
+      // 8. Naviguer vers home d'abord (stack nettoyée), puis afficher le succès
+      await Future.delayed(const Duration(milliseconds: 300));
+      Get.offAll(() => const HomeScreen());
+
+      // 9. Afficher le message après navigation (l'Overlay de HomeScreen est prêt)
+      await Future.delayed(const Duration(milliseconds: 400));
       String message;
       if (_isPaye.value && _imprimerRecu.value) {
         message = 'Colis enregistré et paiement encaissé\nNuméro de suivi: $numeroSuivi\nTicket prêt pour impression';
@@ -602,7 +619,6 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
       } else {
         message = 'Colis enregistré avec succès\nNuméro de suivi: $numeroSuivi';
       }
-
       Get.snackbar(
         'Succès',
         message,
@@ -610,9 +626,6 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
         colorText: Colors.white,
         duration: const Duration(seconds: 5),
       );
-
-      // 9. Recharger la liste et retourner à l'écran d'enregistrement
-      Get.off(() => const EnregistrementColisScreen());
     } catch (e) {
       Get.snackbar(
         'Erreur',
@@ -797,7 +810,8 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
       final colisService = Get.find<ColisService>();
       final authController = Get.find<AuthController>();
       final user = authController.currentUser.value!;
-      final nouveauTotal = fraisLivraison + fraisCollecte + commissionVente;
+      final bool isAgenceTransport = widget.colis.modeLivraison == 'agenceTransport';
+      final nouveauTotal = isAgenceTransport ? fraisLivraison - fraisCollecte + commissionVente : fraisLivraison + fraisCollecte + commissionVente;
 
       await colisService.updateColis(widget.colis.id, {
         'fraisLivraison': fraisLivraison,
@@ -818,8 +832,8 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
           });
         } else if (diff < 0) {
           // Montant diminué → ajustement en caisse (remboursement)
-          final ancienCorex = widget.colis.montantTarif - widget.colis.fraisCollecte;
-          final nouveauCorex = nouveauTotal - fraisCollecte;
+          final ancienCorex = isAgenceTransport ? widget.colis.montantTarif : widget.colis.montantTarif - widget.colis.fraisCollecte;
+          final nouveauCorex = isAgenceTransport ? nouveauTotal : nouveauTotal - fraisCollecte;
           final diffCorex = nouveauCorex - ancienCorex;
           if (diffCorex < 0) {
             if (!Get.isRegistered<TransactionService>()) {

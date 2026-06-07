@@ -255,7 +255,8 @@ class TicketService {
     <div class="section">
         <div class="section-title">TARIFICATION</div>
         ${colis.fraisLivraison > 0 ? '<div class="row"><span class="label">Frais de livraison:</span><span class="value">${colis.fraisLivraison.toStringAsFixed(0)} FCFA</span></div>' : ''}
-        ${colis.fraisCollecte > 0 ? '<div class="row"><span class="label">Frais de collecte:</span><span class="value">${colis.fraisCollecte.toStringAsFixed(0)} FCFA</span></div>' : ''}
+        ${colis.fraisCollecte > 0 && colis.modeLivraison != 'agenceTransport' ? '<div class="row"><span class="label">Montant collecte (vendeur):</span><span class="value">${colis.fraisCollecte.toStringAsFixed(0)} FCFA</span></div>' : ''}
+        ${colis.fraisCollecte > 0 && colis.modeLivraison != 'agenceTransport' ? '<div style="font-size:10px;font-style:italic;color:#888;">* A reverser au vendeur</div>' : ''}
         ${colis.commissionVente > 0 ? '<div class="row"><span class="label">Commission vente:</span><span class="value">${colis.commissionVente.toStringAsFixed(0)} FCFA</span></div>' : ''}
     </div>
 
@@ -263,7 +264,7 @@ class TicketService {
     <div class="total">
         <div class="row">
             <span>TOTAL A PAYER:</span>
-            <span>${colis.montantTarif.toStringAsFixed(0)} FCFA</span>
+            <span>${(colis.modeLivraison == 'agenceTransport' ? colis.fraisLivraison : colis.montantTarif).toStringAsFixed(0)} FCFA</span>
         </div>
     </div>
 

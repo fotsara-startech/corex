@@ -33,7 +33,7 @@ dependencies:
   shimmer: ^3.0.0
   
   # Utilitaires (basé sur clincflow)
-  intl: ^0.19.0
+  intl: ^0.20.0
   uuid: ^4.2.1
   shared_preferences: ^2.2.2
   get_storage: ^2.1.1
@@ -52,7 +52,7 @@ dependencies:
   dio: ^5.4.0
   
   # Fichiers (basé sur clincflow)
-  file_picker: ^6.1.1
+  file_picker: ^8.0.0
   permission_handler: ^11.2.0
   share_plus: ^7.2.1
   
@@ -62,7 +62,7 @@ dependencies:
   
   # Charts (basé sur clincflow)
   fl_chart: ^0.69.0
-  syncfusion_flutter_charts: ^27.2.5
+  syncfusion_flutter_charts: ^28.0.0
   
   # Excel (basé sur clincflow)
   excel: ^4.0.6

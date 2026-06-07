@@ -74,44 +74,50 @@ class UsersListScreen extends StatelessWidget {
             children: [
               // Filtre par rôle
               Expanded(
-                child: Obx(() => DropdownButtonFormField<String>(
-                      value: controller.filterRole.value,
-                      decoration: const InputDecoration(
-                        labelText: 'Rôle',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'tous', child: Text('Tous les rôles')),
-                        DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                        DropdownMenuItem(value: 'gestionnaire', child: Text('Gestionnaire')),
-                        DropdownMenuItem(value: 'commercial', child: Text('Commercial')),
-                        DropdownMenuItem(value: 'coursier', child: Text('Coursier')),
-                        DropdownMenuItem(value: 'agent', child: Text('Agent')),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) controller.filterRole.value = value;
-                      },
-                    )),
+                child: Obx(() {
+                  final role = controller.filterRole.value;
+                  return DropdownButtonFormField<String>(
+                    initialValue: role,
+                    decoration: const InputDecoration(
+                      labelText: 'Rôle',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'tous', child: Text('Tous les rôles')),
+                      DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                      DropdownMenuItem(value: 'gestionnaire', child: Text('Gestionnaire')),
+                      DropdownMenuItem(value: 'commercial', child: Text('Commercial')),
+                      DropdownMenuItem(value: 'coursier', child: Text('Coursier')),
+                      DropdownMenuItem(value: 'agent', child: Text('Agent')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) controller.filterRole.value = value;
+                    },
+                  );
+                }),
               ),
               const SizedBox(width: 16),
 
               // Filtre par statut
               Expanded(
-                child: Obx(() => DropdownButtonFormField<String>(
-                      value: controller.filterStatus.value,
-                      decoration: const InputDecoration(
-                        labelText: 'Statut',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'tous', child: Text('Tous')),
-                        DropdownMenuItem(value: 'actif', child: Text('Actifs')),
-                        DropdownMenuItem(value: 'inactif', child: Text('Inactifs')),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) controller.filterStatus.value = value;
-                      },
-                    )),
+                child: Obx(() {
+                  final status = controller.filterStatus.value;
+                  return DropdownButtonFormField<String>(
+                    initialValue: status,
+                    decoration: const InputDecoration(
+                      labelText: 'Statut',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'tous', child: Text('Tous')),
+                      DropdownMenuItem(value: 'actif', child: Text('Actifs')),
+                      DropdownMenuItem(value: 'inactif', child: Text('Inactifs')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) controller.filterStatus.value = value;
+                    },
+                  );
+                }),
               ),
             ],
           ),

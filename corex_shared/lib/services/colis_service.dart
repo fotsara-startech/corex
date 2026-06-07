@@ -340,6 +340,7 @@ class ColisService extends GetxService {
     required String numeroSuivi,
     double fraisCollecte = 0,
     bool estPaiementPartiel = false,
+    String modeLivraison = '',
   }) async {
     try {
       print('💰 [COLIS_SERVICE] Paiement du colis $numeroSuivi');
@@ -354,9 +355,17 @@ class ColisService extends GetxService {
       print('✅ [COLIS_SERVICE] Colis marqué comme payé');
 
       // 2. Calculer le montant COREX
-      // - Paiement complet : déduire fraisCollecte (à reverser au vendeur)
-      // - Paiement partiel (reste à payer) : fraisCollecte déjà couverts, tout va à COREX
-      final double montantCorex = estPaiementPartiel ? montant : (montant - fraisCollecte < 0 ? 0 : montant - fraisCollecte);
+      // - agenceTransport : montant = montantTarif déjà correct (livraison - expédition + commission)
+      // - Autres modes : déduire fraisCollecte (à reverser au vendeur)
+      // - Paiement partiel : tout va à COREX
+      final double montantCorex;
+      if (estPaiementPartiel) {
+        montantCorex = montant;
+      } else if (modeLivraison == 'agenceTransport') {
+        montantCorex = montant; // montantTarif est déjà net pour COREX
+      } else {
+        montantCorex = montant - fraisCollecte < 0 ? 0 : montant - fraisCollecte;
+      }
 
       if (!Get.isRegistered<TransactionService>()) {
         Get.put(TransactionService(), permanent: true);

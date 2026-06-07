@@ -8,6 +8,9 @@ class AgencesListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<AgenceService>()) {
+      Get.put(AgenceService(), permanent: true);
+    }
     final agenceController = Get.put(AgenceController());
 
     return Scaffold(
@@ -73,21 +76,24 @@ class AgencesListScreen extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Obx(() => DropdownButtonFormField<String>(
-                      value: controller.filterStatus.value,
-                      decoration: const InputDecoration(
-                        labelText: 'Statut',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'tous', child: Text('Toutes')),
-                        DropdownMenuItem(value: 'actif', child: Text('Actives')),
-                        DropdownMenuItem(value: 'inactif', child: Text('Inactives')),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) controller.filterStatus.value = value;
-                      },
-                    )),
+                child: Obx(() {
+                  final status = controller.filterStatus.value;
+                  return DropdownButtonFormField<String>(
+                    initialValue: status,
+                    decoration: const InputDecoration(
+                      labelText: 'Statut',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'tous', child: Text('Toutes')),
+                      DropdownMenuItem(value: 'actif', child: Text('Actives')),
+                      DropdownMenuItem(value: 'inactif', child: Text('Inactives')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) controller.filterStatus.value = value;
+                    },
+                  );
+                }),
               ),
             ],
           ),

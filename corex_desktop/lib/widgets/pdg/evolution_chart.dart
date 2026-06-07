@@ -228,13 +228,16 @@ class EvolutionChart extends StatelessWidget {
     if (data.isEmpty) return 100;
     final values = data.map((item) => (item[valueKey] as num).toDouble()).toList();
     final max = values.reduce((a, b) => a > b ? a : b);
+    if (max == 0) return 100; // Valeur par défaut si toutes les valeurs sont à 0
     return max * 1.1; // 10% de marge en haut
   }
 
   double _calculateInterval() {
     if (data.isEmpty) return 20;
     final maxY = _getMaxY();
-    return maxY / 5; // 5 lignes horizontales
+    if (maxY == 0) return 20; // Éviter division par zéro
+    final interval = maxY / 5; // 5 lignes horizontales
+    return interval > 0 ? interval : 20; // Garantir un intervalle non-nul
   }
 
   String _formatValue(double value) {

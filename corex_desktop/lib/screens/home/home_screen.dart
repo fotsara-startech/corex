@@ -26,8 +26,8 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   // Helper pour navigation avec délai après fermeture du drawer
-  void _navigateAfterDrawerClose(Function navigation) {
-    Get.back();
+  void _navigateAfterDrawerClose(BuildContext context, Function navigation) {
+    Navigator.of(context).pop(); // ferme le drawer sans toucher aux snackbars GetX
     Future.delayed(const Duration(milliseconds: 100), () {
       navigation();
     });
@@ -76,7 +76,9 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      drawer: _buildDrawer(authController),
+      drawer: Builder(
+        builder: (drawerContext) => _buildDrawer(authController, drawerContext),
+      ),
       body: Obx(() {
         final user = authController.currentUser.value;
 
@@ -105,7 +107,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawer(AuthController authController) {
+  Widget _buildDrawer(AuthController authController, BuildContext drawerContext) {
     return Drawer(
       child: Column(
         children: [
@@ -144,7 +146,7 @@ class HomeScreen extends StatelessWidget {
                   leading: const Icon(Icons.dashboard),
                   title: const Text('Tableau de bord'),
                   onTap: () {
-                    Get.back();
+                    Navigator.of(drawerContext).pop();
                   },
                 ),
                 const Divider(),
@@ -178,7 +180,7 @@ class HomeScreen extends StatelessWidget {
                         //         color: Color(0xFF6C5CE7),
                         //       ),
                         //     ),
-                        //     onTap: () => _navigateAfterDrawerClose(() {
+                        //     onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                         //       Get.toNamed('/pdg/dashboard');
                         //     }),
                         //   ),
@@ -193,42 +195,42 @@ class HomeScreen extends StatelessWidget {
                                 color: Color(0xFF2E7D32),
                               ),
                             ),
-                            onTap: () => _navigateAfterDrawerClose(() {
+                            onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                               Get.toNamed('/demandes');
                             }),
                           ),
                         ListTile(
                           leading: const Icon(Icons.people),
                           title: const Text('Gestion des utilisateurs'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const UsersListScreen());
                           }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.business),
                           title: const Text('Gestion des agences'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const AgencesListScreen());
                           }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.map),
                           title: const Text('Zones de livraison'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const ZonesListScreen());
                           }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.local_shipping),
                           title: const Text('Agences de transport'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const AgencesTransportListScreen());
                           }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.contacts),
                           title: const Text('Clients'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const ClientsListScreen());
                           }),
                         ),
@@ -254,7 +256,7 @@ class HomeScreen extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.add_box),
                   title: const Text('Collecter un colis'),
-                  onTap: () => _navigateAfterDrawerClose(() {
+                  onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                     Get.to(() => const NouvelleCollecteScreen());
                   }),
                 ),
@@ -264,7 +266,7 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.app_registration),
                       title: const Text('Enregistrer des colis'),
-                      onTap: () => _navigateAfterDrawerClose(() {
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                         Get.to(() => const EnregistrementColisScreen());
                       }),
                     );
@@ -274,7 +276,7 @@ class HomeScreen extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.search),
                   title: const Text('Suivi des colis'),
-                  onTap: () => _navigateAfterDrawerClose(() {
+                  onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                     Get.to(() => const SuiviColisScreen());
                   }),
                 ),
@@ -288,14 +290,14 @@ class HomeScreen extends StatelessWidget {
                         ListTile(
                           leading: const Icon(Icons.person_add),
                           title: const Text('Attribution des livraisons'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const AttributionLivraisonScreen());
                           }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.list_alt),
                           title: const Text('Suivi des livraisons'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const SuiviLivraisonsScreen());
                           }),
                         ),
@@ -305,7 +307,7 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.delivery_dining),
                       title: const Text('Mes Livraisons'),
-                      onTap: () => _navigateAfterDrawerClose(() {
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                         Get.to(() => const MesLivraisonsScreen());
                       }),
                     );
@@ -318,7 +320,7 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.attach_money),
                       title: const Text('Caisse'),
-                      onTap: () => _navigateAfterDrawerClose(() {
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                         Get.toNamed('/caisse');
                       }),
                     );
@@ -333,7 +335,7 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.keyboard_return),
                       title: const Text('Retours de Colis'),
-                      onTap: () => _navigateAfterDrawerClose(() {
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                         Get.toNamed('/retours');
                       }),
                     );
@@ -352,14 +354,14 @@ class HomeScreen extends StatelessWidget {
                         ListTile(
                           leading: const Icon(Icons.people),
                           title: const Text('Clients stockeurs'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const ClientsStockeursScreen());
                           }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.receipt_long),
                           title: const Text('Factures de stockage'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const FacturesStockageScreen());
                           }),
                         ),
@@ -376,7 +378,7 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.request_quote),
                       title: const Text('Devis'),
-                      onTap: () => _navigateAfterDrawerClose(() {
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                         Get.toNamed('/devis');
                       }),
                     );
@@ -395,14 +397,14 @@ class HomeScreen extends StatelessWidget {
                         ListTile(
                           leading: const Icon(Icons.add),
                           title: const Text('Créer une course'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const CoursesListScreen());
                           }),
                         ),
                         ListTile(
                           leading: const Icon(Icons.list_alt),
                           title: const Text('Suivi des courses'),
-                          onTap: () => _navigateAfterDrawerClose(() {
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                             Get.to(() => const SuiviCoursesScreen());
                           }),
                         ),
@@ -412,7 +414,7 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.directions_run),
                       title: const Text('Service de Courses'),
-                      onTap: () => _navigateAfterDrawerClose(() {
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                         Get.to(() => const CoursesListScreen());
                       }),
                     );
@@ -420,10 +422,9 @@ class HomeScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.directions_run),
                       title: const Text('Mes Courses'),
-                      onTap: () {
-                        Get.back();
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
                         Get.to(() => const MesCoursesScreen());
-                      },
+                      }),
                     );
                   }
                   return const SizedBox.shrink();

@@ -51,12 +51,6 @@ void main() async {
   // Initialisation Hive
   await _initializeHive();
 
-  // Attendre un délai pour s'assurer que tous les modules sont chargés (important pour le web)
-  if (kIsWeb) {
-    await Future.delayed(const Duration(milliseconds: 2000));
-    print('⏳ [COREX] Délai d\'initialisation web terminé');
-  }
-
   // Initialisation des services GetX
   await _initializeServices();
 
@@ -137,10 +131,20 @@ Future<void> _initializeServices() async {
   print('🔧 [COREX] Initialisation des services...');
 
   try {
-    // Attendre que Firebase soit complètement prêt
-    await Future.delayed(const Duration(milliseconds: 1000));
-
     // Repository local (doit être initialisé en premier)
+    try {
+      final localRepo = LocalColisRepository();
+      await localRepo.initialize();
+      Get.put(localRepo, permanent: true);
+      print('✅ [COREX] Repository local initialisé');
+
+      // Nettoyer le cache si nécessaire
+      await CacheCleaner.cleanCacheIfNeeded();
+    } catch (e) {
+      print('⚠️ [COREX] Repository local non disponible: $e');
+    }
+
+    // Services de base avec gestion d'erreurs individuelle
     try {
       final localRepo = LocalColisRepository();
       await localRepo.initialize();
@@ -192,9 +196,6 @@ Future<void> _initializeServices() async {
     await _safeInitialize('AlertService', () async => Get.put(AlertService(), permanent: true));
     await _safeInitialize('EmailService', () async => Get.put(EmailService(), permanent: true));
 
-    // Attendre un peu avant d'initialiser les controllers
-    await Future.delayed(const Duration(milliseconds: 1000)); // Augmenté de 500ms à 1000ms
-
     // Controllers avec gestion d'erreurs individuelle
     await _safeInitialize('AuthController', () async => Get.put(AuthController(), permanent: true));
     await _safeInitialize('DemandeController', () async => Get.put(DemandeController(), permanent: true));
@@ -236,16 +237,11 @@ Future<void> _safeInitialize(String name, Future<void> Function() initFunction) 
   try {
     print('🔄 [COREX] Initialisation de $name...');
     await initFunction();
-
-    // Vérifier que le service est bien enregistré
-    await Future.delayed(const Duration(milliseconds: 100));
-
     print('✅ [COREX] $name initialisé avec succès');
   } catch (e, stackTrace) {
-    print('❌ [COREX] ERREUR CRITIQUE lors de l\'initialisation de $name:');
+    print('❌ [COREX] ERREUR lors de l\'initialisation de $name:');
     print('   Message: $e');
-    print('   Stack: ${stackTrace.toString().split('\n').take(5).join('\n   ')}');
-    // Continuer même en cas d'erreur mais afficher clairement l'erreur
+    print('   Stack: ${stackTrace.toString().split('\n').take(3).join('\n   ')}');
   }
 }
 

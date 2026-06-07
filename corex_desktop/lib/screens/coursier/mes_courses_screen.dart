@@ -207,25 +207,27 @@ class _MesCoursesScreenState extends State<MesCoursesScreen> {
           // Filtre par statut
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Obx(() => DropdownButtonFormField<String>(
-                  value: _courseController.filterStatut.value,
-                  decoration: const InputDecoration(
-                    labelText: 'Filtrer par statut',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.filter_list),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'tous', child: Text('Tous')),
-                    DropdownMenuItem(value: 'enCours', child: Text('En Cours')),
-                    DropdownMenuItem(
-                        value: 'terminee', child: Text('Terminées')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      _courseController.filterStatut.value = value;
-                    }
-                  },
-                )),
+            child: Obx(() {
+              final statut = _courseController.filterStatut.value;
+              return DropdownButtonFormField<String>(
+                initialValue: statut,
+                decoration: const InputDecoration(
+                  labelText: 'Filtrer par statut',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.filter_list),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'tous', child: Text('Tous')),
+                  DropdownMenuItem(value: 'enCours', child: Text('En Cours')),
+                  DropdownMenuItem(value: 'terminee', child: Text('Terminées')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    _courseController.filterStatut.value = value;
+                  }
+                },
+              );
+            }),
           ),
 
           // Liste des courses
@@ -242,8 +244,7 @@ class _MesCoursesScreenState extends State<MesCoursesScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.directions_run,
-                          size: 64, color: Colors.grey[400]),
+                      Icon(Icons.directions_run, size: 64, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       Text(
                         'Aucune course assignée',
@@ -269,8 +270,7 @@ class _MesCoursesScreenState extends State<MesCoursesScreen> {
     );
   }
 
-  Widget _buildStatCard(
-      String label, String value, Color color, IconData icon) {
+  Widget _buildStatCard(String label, String value, Color color, IconData icon) {
     return Expanded(
       child: Card(
         child: Padding(
@@ -330,8 +330,7 @@ class _MesCoursesScreenState extends State<MesCoursesScreen> {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: _getStatutColor(course.statut).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
