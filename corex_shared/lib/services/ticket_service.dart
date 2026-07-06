@@ -218,6 +218,12 @@ class TicketService {
         ${colis.numeroSuivi}
     </div>
 
+    <!-- Destination - En grand caractère -->
+    <div style="background:#000;color:#fff;text-align:center;padding:10px 6px;margin-bottom:6px;">
+        <div style="font-size:10px;font-weight:bold;letter-spacing:2px;">DESTINATION</div>
+        <div style="font-size:28px;font-weight:bold;letter-spacing:1px;">${colis.destinataireVille.toUpperCase()}</div>
+    </div>
+
     <!-- Informations expéditeur -->
     <div class="section">
         <div class="section-title">EXPEDITEUR</div>

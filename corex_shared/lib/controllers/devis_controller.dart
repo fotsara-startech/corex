@@ -12,6 +12,7 @@ import '../models/facture_stockage_model.dart';
 import '../services/devis_service.dart';
 import '../services/transaction_service.dart';
 import '../services/stockage_service.dart';
+import '../utils/safe_snackbar.dart';
 import 'auth_controller.dart';
 
 class DevisController extends GetxController {
@@ -71,11 +72,11 @@ class DevisController extends GetxController {
 
   Future<bool> createDevis(DevisModel devis) async {
     if (devis.clientNom.trim().isEmpty) {
-      Get.snackbar('Erreur', 'Le nom du client est obligatoire');
+      safeSnackbar('Erreur', 'Le nom du client est obligatoire');
       return false;
     }
     if (devis.lignes.isEmpty) {
-      Get.snackbar('Erreur', 'Ajoutez au moins une ligne au devis');
+      safeSnackbar('Erreur', 'Ajoutez au moins une ligne au devis');
       return false;
     }
     try {
@@ -99,50 +100,50 @@ class DevisController extends GetxController {
         notes: devis.notes,
       );
       await _devisService.createDevis(newDevis);
-      Get.snackbar('Succès', 'Devis $numero créé', backgroundColor: const Color(0xFF4CAF50), colorText: Colors.white);
+      safeSnackbar('Succès', 'Devis $numero créé', backgroundColor: const Color(0xFF4CAF50), colorText: Colors.white);
       return true;
     } catch (e) {
       print('❌ [DEVIS_CONTROLLER] Erreur création: $e');
-      Get.snackbar('Erreur', 'Impossible de créer le devis: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      safeSnackbar('Erreur', 'Impossible de créer le devis: $e', backgroundColor: Colors.red, colorText: Colors.white);
       return false;
     }
   }
 
   Future<bool> updateDevis(String id, Map<String, dynamic> data, {required String currentStatut}) async {
     if (currentStatut == 'valide' || currentStatut == 'converti') {
-      Get.snackbar('Devis verrouillé', 'Ce devis ne peut plus être modifié');
+      safeSnackbar('Devis verrouillé', 'Ce devis ne peut plus être modifié');
       return false;
     }
     try {
       await _devisService.updateDevis(id, data);
-      Get.snackbar('Succès', 'Devis mis à jour');
+      safeSnackbar('Succès', 'Devis mis à jour');
       return true;
     } catch (e) {
       print('❌ [DEVIS_CONTROLLER] Erreur mise à jour: $e');
-      Get.snackbar('Erreur', 'Impossible de mettre à jour: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      safeSnackbar('Erreur', 'Impossible de mettre à jour: $e', backgroundColor: Colors.red, colorText: Colors.white);
       return false;
     }
   }
 
   Future<bool> deleteDevis(DevisModel devis) async {
     if (!devis.canDelete) {
-      Get.snackbar('Devis verrouillé', 'Ce devis ne peut pas être supprimé');
+      safeSnackbar('Devis verrouillé', 'Ce devis ne peut pas être supprimé');
       return false;
     }
     try {
       await _devisService.deleteDevis(devis.id);
-      Get.snackbar('Succès', 'Devis supprimé');
+      safeSnackbar('Succès', 'Devis supprimé');
       return true;
     } catch (e) {
       print('❌ [DEVIS_CONTROLLER] Erreur suppression: $e');
-      Get.snackbar('Erreur', 'Impossible de supprimer: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      safeSnackbar('Erreur', 'Impossible de supprimer: $e', backgroundColor: Colors.red, colorText: Colors.white);
       return false;
     }
   }
 
   Future<bool> validerDevis(DevisModel devis) async {
     if (!devis.canValider) {
-      Get.snackbar('Erreur', 'Ce devis ne peut pas être validé dans son état actuel');
+      safeSnackbar('Erreur', 'Ce devis ne peut pas être validé dans son état actuel');
       return false;
     }
     try {
@@ -176,18 +177,18 @@ class DevisController extends GetxController {
         'dateValidation': DateTime.now(),
       });
 
-      Get.snackbar('Succès', 'Devis validé et recette enregistrée en caisse', backgroundColor: const Color(0xFF4CAF50), colorText: Colors.white);
+      safeSnackbar('Succès', 'Devis validé et recette enregistrée en caisse', backgroundColor: const Color(0xFF4CAF50), colorText: Colors.white);
       return true;
     } catch (e) {
       print('❌ [DEVIS_CONTROLLER] Erreur validation: $e');
-      Get.snackbar('Erreur', 'Impossible de valider le devis: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      safeSnackbar('Erreur', 'Impossible de valider le devis: $e', backgroundColor: Colors.red, colorText: Colors.white);
       return false;
     }
   }
 
   Future<bool> convertirEnFacture(DevisModel devis) async {
     if (!devis.canConvertir) {
-      Get.snackbar('Erreur', 'Seul un devis validé peut être converti en facture');
+      safeSnackbar('Erreur', 'Seul un devis validé peut être converti en facture');
       return false;
     }
     try {
@@ -225,11 +226,14 @@ class DevisController extends GetxController {
         'factureId': factureId,
       });
 
-      Get.snackbar('Succès', 'Facture $numeroFacture créée', backgroundColor: const Color(0xFF4CAF50), colorText: Colors.white);
+      // Mettre à jour selectedDevis pour que l'écran de détail reflète le nouveau statut
+      selectedDevis.value = devis.copyWith(statut: 'converti', factureId: factureId);
+
+      safeSnackbar('Succès', 'Facture $numeroFacture créée', backgroundColor: const Color(0xFF4CAF50), colorText: Colors.white);
       return true;
     } catch (e) {
       print('❌ [DEVIS_CONTROLLER] Erreur conversion: $e');
-      Get.snackbar('Erreur', 'Impossible de convertir: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      safeSnackbar('Erreur', 'Impossible de convertir: $e', backgroundColor: Colors.red, colorText: Colors.white);
       return false;
     }
   }
@@ -241,7 +245,7 @@ class DevisController extends GetxController {
         onLayout: (_) async => _genererPdf(devis),
       );
     } catch (e) {
-      Get.snackbar('Erreur', 'Impossible d\'imprimer: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      safeSnackbar('Erreur', 'Impossible d\'imprimer: $e', backgroundColor: Colors.red, colorText: Colors.white);
     }
   }
 
@@ -251,7 +255,7 @@ class DevisController extends GetxController {
       final filename = devis.statut == 'converti' ? 'Facture_${devis.numeroDevis}.pdf' : 'Devis_${devis.numeroDevis}.pdf';
       await Printing.sharePdf(bytes: bytes, filename: filename);
     } catch (e) {
-      Get.snackbar('Erreur', 'Impossible d\'exporter: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      safeSnackbar('Erreur', 'Impossible d\'exporter: $e', backgroundColor: Colors.red, colorText: Colors.white);
     }
   }
 

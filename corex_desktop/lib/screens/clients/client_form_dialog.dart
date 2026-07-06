@@ -168,7 +168,6 @@ class _ClientFormDialogState extends State<ClientFormDialog> {
                     hintText: '6XXXXXXXX',
                   ),
                   keyboardType: TextInputType.phone,
-                  enabled: !isEditMode, // Téléphone non modifiable en édition
                   validator: Validators.validatePhone,
                 ),
                 const SizedBox(height: 16),

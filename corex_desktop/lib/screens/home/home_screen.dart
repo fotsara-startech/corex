@@ -386,6 +386,21 @@ class HomeScreen extends StatelessWidget {
                   return const SizedBox.shrink();
                 }),
 
+                // Résumé d'activité
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role == 'gestionnaire' || user?.role == 'admin' || user?.role == 'pdg') {
+                    return ListTile(
+                      leading: const Icon(Icons.bar_chart, color: Color(0xFF2E7D32)),
+                      title: const Text('Résumé d\'activité'),
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
+                        Get.toNamed('/rapports');
+                      }),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
+
                 // Section Courses
                 Obx(() {
                   final user = authController.currentUser.value;

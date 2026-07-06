@@ -10,7 +10,10 @@ class TicketPrintService {
   static const PdfPageFormat ticketFormat = PdfPageFormat(
     80 * PdfPageFormat.mm, // 80mm de largeur
     double.infinity, // Hauteur variable selon le contenu
-    marginAll: 5 * PdfPageFormat.mm, // Marges réduites
+    marginLeft: 3 * PdfPageFormat.mm,
+    marginRight: 1 * PdfPageFormat.mm,
+    marginTop: 4 * PdfPageFormat.mm,
+    marginBottom: 4 * PdfPageFormat.mm,
   );
 
   /// Génère et imprime un ticket de caisse avec sélection d'imprimante
@@ -124,6 +127,32 @@ class TicketPrintService {
                 ),
               ),
 
+              pw.SizedBox(height: 6),
+
+              // DESTINATION - En grand, très visible
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.black, width: 2),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                      'DESTINATION',
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      colis.destinataireVille.toUpperCase(),
+                      style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+
               pw.SizedBox(height: 8),
 
               // Expéditeur - Format compact
@@ -169,48 +198,20 @@ class TicketPrintService {
                   children: [
                     pw.Text('TARIFICATION', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                     pw.Container(height: 0.5, width: double.infinity, color: PdfColors.black, margin: const pw.EdgeInsets.symmetric(vertical: 3)),
-                    if (colis.fraisLivraison > 0)
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Frais de livraison:', style: const pw.TextStyle(fontSize: 9)),
-                          pw.Text('${colis.fraisLivraison.toStringAsFixed(0)} FCFA', style: const pw.TextStyle(fontSize: 9)),
-                        ],
-                      ),
-                    // En mode agenceTransport, les frais d'expédition sont internes à COREX
-                    // On n'affiche pas le détail au client
+                    if (colis.fraisLivraison > 0) _buildTarifLigne('Frais de livraison', '${colis.fraisLivraison.toStringAsFixed(0)} FCFA'),
                     if (colis.fraisCollecte > 0 && colis.modeLivraison != 'agenceTransport') ...[
                       pw.SizedBox(height: 2),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Montant collecte (vendeur):', style: const pw.TextStyle(fontSize: 9)),
-                          pw.Text('${colis.fraisCollecte.toStringAsFixed(0)} FCFA', style: const pw.TextStyle(fontSize: 9)),
-                        ],
-                      ),
+                      _buildTarifLigne('Montant collecte (vendeur)', '${colis.fraisCollecte.toStringAsFixed(0)} FCFA'),
                       pw.Text('  * A reverser au vendeur', style: pw.TextStyle(fontSize: 7, fontStyle: pw.FontStyle.italic)),
                     ],
                     if (colis.commissionVente > 0) ...[
                       pw.SizedBox(height: 2),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Commission vente:', style: const pw.TextStyle(fontSize: 9)),
-                          pw.Text('${colis.commissionVente.toStringAsFixed(0)} FCFA', style: const pw.TextStyle(fontSize: 9)),
-                        ],
-                      ),
+                      _buildTarifLigne('Commission vente', '${colis.commissionVente.toStringAsFixed(0)} FCFA'),
                     ],
                     pw.Container(height: 0.5, width: double.infinity, color: PdfColors.black, margin: const pw.EdgeInsets.symmetric(vertical: 3)),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('TOTAL A ENCAISSER:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                        // En mode agenceTransport, le client paie fraisLivraison (pas montantTarif qui est la recette COREX)
-                        pw.Text(
-                          '${(colis.modeLivraison == 'agenceTransport' ? colis.fraisLivraison : colis.montantTarif).toStringAsFixed(0)} FCFA',
-                          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
-                        ),
-                      ],
+                    pw.Text(
+                      'TOTAL A ENCAISSER:  ${(colis.modeLivraison == 'agenceTransport' ? colis.fraisLivraison : colis.montantTarif).toStringAsFixed(0)} FCFA',
+                      style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
                     ),
                   ],
                 ),
@@ -226,19 +227,11 @@ class TicketPrintService {
                   border: pw.Border.all(color: PdfColors.black),
                 ),
                 child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('Paiement:', style: const pw.TextStyle(fontSize: 10)),
-                        pw.Text(
-                          colis.isPaye ? 'PAYÉ' : 'NON PAYÉ',
-                          style: pw.TextStyle(
-                            fontSize: 10,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    pw.Text(
+                      'Paiement:  ${colis.isPaye ? 'PAYÉ' : 'NON PAYÉ'}',
+                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
                     ),
                     if (colis.isPaye && colis.datePaiement != null) ...[
                       pw.SizedBox(height: 2),
@@ -328,6 +321,14 @@ class TicketPrintService {
               .toList(),
         ],
       ),
+    );
+  }
+
+  /// Construit une ligne de tarif (label: montant) sans spaceBetween
+  static pw.Widget _buildTarifLigne(String label, String montant) {
+    return pw.Text(
+      '$label:  $montant',
+      style: const pw.TextStyle(fontSize: 9),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../models/client_model.dart';
 import '../services/client_service.dart';
+import '../utils/safe_snackbar.dart';
 import 'auth_controller.dart';
 
 class ClientController extends GetxController {
@@ -35,7 +36,7 @@ class ClientController extends GetxController {
       clientsList.value = clients;
     } catch (e) {
       print('❌ [CLIENT_CONTROLLER] Erreur chargement clients: $e');
-      Get.snackbar('Erreur', 'Impossible de charger les clients');
+      safeSnackbar('Erreur', 'Impossible de charger les clients');
     } finally {
       isLoading.value = false;
     }
@@ -87,11 +88,11 @@ class ClientController extends GetxController {
     try {
       await _clientService.createClient(client);
       await loadClients();
-      Get.snackbar('Succès', 'Client enregistré');
+      safeSnackbar('Succès', 'Client enregistré');
       return true;
     } catch (e) {
       print('❌ [CLIENT_CONTROLLER] Erreur création: $e');
-      Get.snackbar('Erreur', 'Impossible de créer le client');
+      safeSnackbar('Erreur', 'Impossible de créer le client');
       return false;
     }
   }
@@ -100,11 +101,11 @@ class ClientController extends GetxController {
     try {
       await _clientService.updateClient(clientId, data);
       await loadClients();
-      Get.snackbar('Succès', 'Client mis à jour');
+      safeSnackbar('Succès', 'Client mis à jour');
       return true;
     } catch (e) {
       print('❌ [CLIENT_CONTROLLER] Erreur mise à jour: $e');
-      Get.snackbar('Erreur', 'Impossible de mettre à jour le client');
+      safeSnackbar('Erreur', 'Impossible de mettre à jour le client');
       return false;
     }
   }
@@ -113,10 +114,10 @@ class ClientController extends GetxController {
     try {
       await _clientService.deleteClient(clientId);
       await loadClients();
-      Get.snackbar('Succès', 'Client supprimé');
+      safeSnackbar('Succès', 'Client supprimé');
     } catch (e) {
       print('❌ [CLIENT_CONTROLLER] Erreur suppression: $e');
-      Get.snackbar('Erreur', 'Impossible de supprimer le client');
+      safeSnackbar('Erreur', 'Impossible de supprimer le client');
     }
   }
 }

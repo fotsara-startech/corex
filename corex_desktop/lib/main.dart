@@ -18,6 +18,7 @@ import 'screens/notifications/notifications_screen.dart';
 import 'screens/pdg/pdg_dashboard_screen.dart';
 import 'screens/demandes/demandes_dashboard_screen.dart';
 import 'screens/devis/devis_list_screen.dart';
+import 'screens/rapports/rapport_activite_screen.dart';
 import 'screens/client/demande_course_form.dart';
 import 'screens/client/demande_colis_form.dart';
 import 'screens/client/mes_demandes_screen.dart';
@@ -415,6 +416,10 @@ class CorexDesktopApp extends StatelessWidget {
               GetPage(
                 name: '/devis',
                 page: () => const DevisListScreen(),
+              ),
+              GetPage(
+                name: '/rapports',
+                page: () => const RapportActiviteScreen(),
               ),
               // Routes client
               GetPage(

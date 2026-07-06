@@ -201,6 +201,31 @@ class DevisDetailScreen extends StatelessWidget {
             ),
           ),
         ],
+        // Boutons impression pour devis converti en facture
+        if (devis.statut == 'converti') ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => controller.exporterDevis(devis),
+                  icon: const Icon(Icons.picture_as_pdf, color: Colors.blue),
+                  label: const Text('EXPORTER FACTURE', style: TextStyle(color: Colors.blue)),
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.blue), padding: const EdgeInsets.symmetric(vertical: 14)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => controller.imprimerDevis(devis),
+                  icon: const Icon(Icons.print),
+                  label: const Text('IMPRIMER FACTURE'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -245,14 +270,73 @@ class DevisDetailScreen extends StatelessWidget {
   void _confirmerConversion(BuildContext context, DevisModel devis, DevisController controller) {
     Get.dialog(AlertDialog(
       title: const Row(children: [Icon(Icons.transform, color: Colors.blue), SizedBox(width: 8), Text('Convertir en facture')]),
-      content: Text('Convertir le devis ${devis.numeroDevis} en facture ?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Convertir le devis ${devis.numeroDevis} en facture ?'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(6)),
+            child: const Row(children: [
+              Icon(Icons.info_outline, color: Colors.blue, size: 16),
+              SizedBox(width: 8),
+              Expanded(child: Text('Un PDF de facture vous sera proposé après conversion.', style: TextStyle(fontSize: 12))),
+            ]),
+          ),
+        ],
+      ),
       actions: [
         TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
         ElevatedButton(
           onPressed: () async {
             Get.back();
             final ok = await controller.convertirEnFacture(devis);
-            if (ok) Get.back();
+            if (ok) {
+              // Recharger le devis mis à jour
+              final devisMisAJour = controller.selectedDevis.value;
+              // Proposer l'impression de la facture
+              Get.dialog(AlertDialog(
+                title: const Row(children: [Icon(Icons.check_circle, color: Colors.blue), SizedBox(width: 8), Text('Facture créée')]),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('La facture a été générée avec succès.'),
+                    const SizedBox(height: 8),
+                    const Text('Souhaitez-vous imprimer ou exporter la facture ?'),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Get.back();
+                      Get.back(); // retour à la liste
+                    },
+                    child: const Text('Plus tard'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      Get.back();
+                      await controller.exporterDevis(devisMisAJour ?? devis);
+                      Get.back();
+                    },
+                    icon: const Icon(Icons.picture_as_pdf, color: Colors.blue),
+                    label: const Text('Exporter PDF', style: TextStyle(color: Colors.blue)),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      Get.back();
+                      await controller.imprimerDevis(devisMisAJour ?? devis);
+                      Get.back();
+                    },
+                    icon: const Icon(Icons.print),
+                    label: const Text('Imprimer'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                  ),
+                ],
+              ));
+            }
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
           child: const Text('Convertir'),
