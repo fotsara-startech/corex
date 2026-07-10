@@ -276,7 +276,7 @@ class UsersListScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Get.back();
-              controller.toggleUserStatus(user);
+              Future.microtask(() => controller.toggleUserStatus(user));
             },
             child: const Text('Confirmer'),
           ),
@@ -300,7 +300,7 @@ class UsersListScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Get.back();
-              controller.deleteUser(user);
+              Future.microtask(() => controller.deleteUser(user));
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Supprimer'),

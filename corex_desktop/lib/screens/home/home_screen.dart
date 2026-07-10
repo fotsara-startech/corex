@@ -19,6 +19,7 @@ import '../stockage/factures_stockage_screen.dart';
 import '../courses/courses_list_screen.dart';
 import '../courses/suivi_courses_screen.dart';
 import '../pdg/pdg_dashboard_screen.dart';
+import '../commercial/commercial_dashboard_screen.dart';
 import '../../widgets/connection_indicator.dart';
 import '../../widgets/corex_logo.dart';
 
@@ -99,6 +100,11 @@ class HomeScreen extends StatelessWidget {
         // Dashboard dédié pour les coursiers
         if (user.role == 'coursier') {
           return const CoursierDashboardScreen();
+        }
+
+        // Dashboard dédié pour les commerciaux
+        if (user.role == 'commercial') {
+          return const CommercialDashboardScreen();
         }
 
         // Sinon, afficher l'interface standard pour les employés

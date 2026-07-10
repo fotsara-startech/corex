@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
@@ -50,7 +51,7 @@ class UserController extends GetxController {
       print('✅ [USER_CONTROLLER] ${_allUsers.length} utilisateurs chargés');
     } catch (e) {
       print('❌ [USER_CONTROLLER] Erreur: $e');
-      Get.snackbar('Erreur', 'Impossible de charger les utilisateurs');
+      _safeSnackbar('Erreur', 'Impossible de charger les utilisateurs');
     } finally {
       isLoading.value = false;
     }
@@ -103,20 +104,12 @@ class UserController extends GetxController {
         role: role,
         agenceId: agenceId,
       );
-      Get.snackbar(
-        'Succès',
-        'Utilisateur créé avec succès',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _safeSnackbar('Succès', 'Utilisateur créé avec succès');
       await loadUsers();
       return true;
     } catch (e) {
       print('❌ [USER_CONTROLLER] Erreur création: $e');
-      Get.snackbar(
-        'Erreur',
-        'Impossible de créer l\'utilisateur: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _safeSnackbar('Erreur', 'Impossible de créer l\'utilisateur: $e');
       return false;
     }
   }
@@ -128,20 +121,12 @@ class UserController extends GetxController {
     try {
       print('📝 [USER_CONTROLLER] Mise à jour utilisateur: $userId');
       await _userService.updateUser(userId, data);
-      Get.snackbar(
-        'Succès',
-        'Utilisateur mis à jour',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _safeSnackbar('Succès', 'Utilisateur mis à jour');
       await loadUsers();
       return true;
     } catch (e) {
       print('❌ [USER_CONTROLLER] Erreur mise à jour: $e');
-      Get.snackbar(
-        'Erreur',
-        'Impossible de mettre à jour l\'utilisateur',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _safeSnackbar('Erreur', 'Impossible de mettre à jour l\'utilisateur');
       return false;
     }
   }
@@ -151,19 +136,11 @@ class UserController extends GetxController {
       final newStatus = !user.isActive;
       print('🔄 [USER_CONTROLLER] Changement statut: ${user.email} -> $newStatus');
       await _userService.toggleUserStatus(user.id, newStatus);
-      Get.snackbar(
-        'Succès',
-        newStatus ? 'Utilisateur activé' : 'Utilisateur désactivé',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _safeSnackbar('Succès', newStatus ? 'Utilisateur activé' : 'Utilisateur désactivé');
       await loadUsers();
     } catch (e) {
       print('❌ [USER_CONTROLLER] Erreur changement statut: $e');
-      Get.snackbar(
-        'Erreur',
-        'Impossible de modifier le statut',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _safeSnackbar('Erreur', 'Impossible de modifier le statut');
     }
   }
 
@@ -171,19 +148,11 @@ class UserController extends GetxController {
     try {
       print('🗑️ [USER_CONTROLLER] Suppression utilisateur: ${user.email}');
       await _userService.deleteUser(user.id);
-      Get.snackbar(
-        'Succès',
-        'Utilisateur supprimé',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _safeSnackbar('Succès', 'Utilisateur supprimé');
       await loadUsers();
     } catch (e) {
       print('❌ [USER_CONTROLLER] Erreur suppression: $e');
-      Get.snackbar(
-        'Erreur',
-        'Impossible de supprimer l\'utilisateur',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _safeSnackbar('Erreur', 'Impossible de supprimer l\'utilisateur');
     }
   }
 
@@ -194,5 +163,16 @@ class UserController extends GetxController {
 
   void clearSelection() {
     selectedUser.value = null;
+  }
+
+  /// Affiche un snackbar de manière sécurisée, même si l'overlay n'est pas encore prêt.
+  void _safeSnackbar(String title, String message) {
+    if (Get.isOverlaysOpen || Get.context != null) {
+      Get.snackbar(title, message, snackPosition: SnackPosition.BOTTOM);
+    } else {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        Get.snackbar(title, message, snackPosition: SnackPosition.BOTTOM);
+      });
+    }
   }
 }

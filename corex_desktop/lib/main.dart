@@ -146,20 +146,8 @@ Future<void> _initializeServices() async {
     }
 
     // Services de base avec gestion d'erreurs individuelle
-    try {
-      final localRepo = LocalColisRepository();
-      await localRepo.initialize();
-      Get.put(localRepo, permanent: true);
-      print('✅ [COREX] Repository local initialisé');
-
-      // Nettoyer le cache si nécessaire
-      await CacheCleaner.cleanCacheIfNeeded();
-    } catch (e) {
-      print('⚠️ [COREX] Repository local non disponible: $e');
-    }
-
-    // Services de base avec gestion d'erreurs individuelle
     await _safeInitialize('AuthService', () async => Get.put(AuthService(), permanent: true));
+    await _safeInitialize('EmailService', () async => Get.put(EmailService(), permanent: true));
     await _safeInitialize('DemandeService', () async => Get.put(DemandeService(), permanent: true));
     await _safeInitialize('ColisService', () async {
       final service = ColisService();
@@ -191,11 +179,10 @@ Future<void> _initializeServices() async {
     await _safeInitialize('CourseService', () async => Get.put(CourseService(), permanent: true));
     await _safeInitialize('AgenceTransportService', () async => Get.put(AgenceTransportService(), permanent: true));
     await _safeInitialize('NotificationService', () async => Get.put(NotificationService(), permanent: true));
+    await _safeInitialize('AlertService', () async => Get.put(AlertService(), permanent: true));
     await _safeInitialize('StockageService', () async => Get.put(StockageService(), permanent: true));
     await _safeInitialize('DevisService', () async => Get.put(DevisService(), permanent: true));
     await _safeInitialize('SyncService', () async => Get.put(SyncService(), permanent: true));
-    await _safeInitialize('AlertService', () async => Get.put(AlertService(), permanent: true));
-    await _safeInitialize('EmailService', () async => Get.put(EmailService(), permanent: true));
 
     // Controllers avec gestion d'erreurs individuelle
     await _safeInitialize('AuthController', () async => Get.put(AuthController(), permanent: true));
@@ -273,6 +260,8 @@ Future<void> _ensureEssentialServices() async {
     // Vérifier et initialiser les contrôleurs essentiels
     final essentialControllers = [
       () => !Get.isRegistered<AuthController>() ? Get.put(AuthController(), permanent: true) : null,
+      () => !Get.isRegistered<ColisController>() ? Get.put(ColisController(), permanent: true) : null,
+      () => !Get.isRegistered<DevisController>() ? Get.put(DevisController(), permanent: true) : null,
       () => !Get.isRegistered<UserController>() ? Get.put(UserController(), permanent: true) : null,
       () => !Get.isRegistered<ClientController>() ? Get.put(ClientController(), permanent: true) : null,
       () => !Get.isRegistered<CourseController>() ? Get.put(CourseController(), permanent: true) : null,
