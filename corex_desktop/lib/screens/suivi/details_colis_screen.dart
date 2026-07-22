@@ -179,10 +179,8 @@ class DetailsColisScreen extends StatelessWidget {
               if (colis.fraisCollecte > 0) _buildInfoRow('Frais de collecte', '${colis.fraisCollecte.toStringAsFixed(0)} FCFA'),
               if (colis.commissionVente > 0) _buildInfoRow('Commission vente', '${colis.commissionVente.toStringAsFixed(0)} FCFA'),
               _buildInfoRow('Total', '${colis.montantTarif.toStringAsFixed(0)} FCFA'),
-              if (colis.montantDejaPaye > 0 && !colis.isPaye)
-                _buildInfoRow('Déjà payé', '${colis.montantDejaPaye.toStringAsFixed(0)} FCFA', valueColor: Colors.green),
-              if (!colis.isPaye && colis.resteAPayer > 0)
-                _buildInfoRow('Reste à payer', '${colis.resteAPayer.toStringAsFixed(0)} FCFA', valueColor: Colors.red),
+              if (colis.montantDejaPaye > 0 && !colis.isPaye) _buildInfoRow('Déjà payé', '${colis.montantDejaPaye.toStringAsFixed(0)} FCFA', valueColor: Colors.green),
+              if (!colis.isPaye && colis.resteAPayer > 0) _buildInfoRow('Reste à payer', '${colis.resteAPayer.toStringAsFixed(0)} FCFA', valueColor: Colors.red),
               _buildInfoRow(
                 'Statut paiement',
                 colis.isPaye ? 'Payé' : (colis.montantDejaPaye > 0 ? 'Partiellement payé' : 'Non payé'),
@@ -201,9 +199,7 @@ class DetailsColisScreen extends StatelessWidget {
                     onPressed: () => _showPaymentDialog(context, colis, controller),
                     icon: const Icon(Icons.payment, color: Color(0xFF2E7D32)),
                     label: Text(
-                      colis.montantDejaPaye > 0
-                          ? 'Payer le reste (${colis.resteAPayer.toStringAsFixed(0)} FCFA)'
-                          : 'Enregistrer le paiement',
+                      colis.montantDejaPaye > 0 ? 'Payer le reste (${colis.resteAPayer.toStringAsFixed(0)} FCFA)' : 'Enregistrer le paiement',
                       style: const TextStyle(color: Color(0xFF2E7D32)),
                     ),
                     style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFF2E7D32))),
@@ -586,8 +582,8 @@ class DetailsColisScreen extends StatelessWidget {
           });
         } else if (diff < 0) {
           // Montant diminué → ajustement en caisse (remboursement de la partie COREX)
-          final ancienCorex = colis.montantTarif - colis.fraisCollecte;
-          final nouveauCorex = nouveauTotal - fraisCollecte;
+          final ancienCorex = colis.fraisLivraison + colis.commissionVente;
+          final nouveauCorex = fraisLivraison + commissionVente;
           final diffCorex = nouveauCorex - ancienCorex;
           if (diffCorex < 0) {
             if (!Get.isRegistered<TransactionService>()) Get.put(TransactionService(), permanent: true);
@@ -750,8 +746,7 @@ class DetailsColisScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
-          Text('${montant.toStringAsFixed(0)} FCFA',
-              style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.w500, color: color ?? (bold ? const Color(0xFF2E7D32) : null))),
+          Text('${montant.toStringAsFixed(0)} FCFA', style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.w500, color: color ?? (bold ? const Color(0xFF2E7D32) : null))),
         ],
       ),
     );

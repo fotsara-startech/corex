@@ -24,6 +24,12 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
   late final CourseController _courseController;
   late final ClientController _clientController;
   late final AuthController _authController;
+  late final TransactionController _transactionController;
+
+  // CA du commercial
+  final RxDouble _chiffreAffaires = 0.0.obs;
+  final RxBool _loadingCA = false.obs;
+  final RxString _periodeSelectionnee = 'Ce mois'.obs;
 
   @override
   void initState() {
@@ -33,6 +39,96 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
     _devisController = Get.find<DevisController>();
     _courseController = Get.find<CourseController>();
     _clientController = Get.find<ClientController>();
+
+    // Initialiser TransactionController de manière paresseuse
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController(), permanent: true);
+    }
+    _transactionController = Get.find<TransactionController>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadChiffreAffaires();
+    });
+  }
+
+  Future<void> _loadChiffreAffaires() async {
+    _loadingCA.value = true;
+    try {
+      final user = _authController.currentUser.value;
+      if (user == null) return;
+
+      // Calculer la plage de dates selon la période
+      final plage = _getPlageDate(_periodeSelectionnee.value);
+
+      // Calculer le CA à partir des transactions de type recette créées par ce commercial
+      final transactions = _transactionController.transactionsList.where((t) {
+        return t.type == 'recette' && t.userId == user.id && t.date.isAfter(plage.$1.subtract(const Duration(seconds: 1))) && t.date.isBefore(plage.$2.add(const Duration(seconds: 1)));
+      }).toList();
+
+      _chiffreAffaires.value = transactions.fold(0.0, (sum, t) => sum + t.montant);
+    } catch (e) {
+      print('Erreur chargement CA: $e');
+    } finally {
+      _loadingCA.value = false;
+    }
+  }
+
+  (DateTime, DateTime) _getPlageDate(String periode) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    switch (periode) {
+      case 'Aujourd\'hui':
+        return (today, endOfToday);
+
+      case 'Hier':
+        final hier = today.subtract(const Duration(days: 1));
+        return (hier, DateTime(hier.year, hier.month, hier.day, 23, 59, 59));
+
+      case 'Cette semaine':
+        final debutSemaine = today.subtract(Duration(days: now.weekday - 1));
+        return (debutSemaine, endOfToday);
+
+      case 'Semaine dernière':
+        final debutSemaineDerniere = today.subtract(Duration(days: now.weekday + 6));
+        final finSemaineDerniere = today.subtract(Duration(days: now.weekday));
+        return (debutSemaineDerniere, DateTime(finSemaineDerniere.year, finSemaineDerniere.month, finSemaineDerniere.day, 23, 59, 59));
+
+      case 'Ce mois':
+        final debutMois = DateTime(now.year, now.month, 1);
+        return (debutMois, endOfToday);
+
+      case 'Mois dernier':
+        final debutMoisDernier = DateTime(now.year, now.month - 1, 1);
+        final finMoisDernier = DateTime(now.year, now.month, 1).subtract(const Duration(seconds: 1));
+        return (debutMoisDernier, finMoisDernier);
+
+      case 'Ce trimestre':
+        final trimestreActuel = ((now.month - 1) ~/ 3) + 1;
+        final debutTrimestre = DateTime(now.year, (trimestreActuel - 1) * 3 + 1, 1);
+        return (debutTrimestre, endOfToday);
+
+      case 'Trimestre dernier':
+        final trimestreActuel = ((now.month - 1) ~/ 3) + 1;
+        final trimestreDernier = trimestreActuel == 1 ? 4 : trimestreActuel - 1;
+        final annee = trimestreActuel == 1 ? now.year - 1 : now.year;
+        final debutTrimestreDernier = DateTime(annee, (trimestreDernier - 1) * 3 + 1, 1);
+        final finTrimestreDernier = DateTime(annee, trimestreDernier * 3 + 1, 1).subtract(const Duration(seconds: 1));
+        return (debutTrimestreDernier, finTrimestreDernier);
+
+      case 'Cette année':
+        final debutAnnee = DateTime(now.year, 1, 1);
+        return (debutAnnee, endOfToday);
+
+      case 'Année dernière':
+        final debutAnneeDerniere = DateTime(now.year - 1, 1, 1);
+        final finAnneeDerniere = DateTime(now.year, 1, 1).subtract(const Duration(seconds: 1));
+        return (debutAnneeDerniere, finAnneeDerniere);
+
+      default:
+        return (DateTime(now.year, now.month, 1), endOfToday);
+    }
   }
 
   Future<void> _refresh() async {
@@ -40,7 +136,9 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
       _colisController.loadColis(),
       _courseController.loadCourses(),
       _clientController.loadClients(),
+      _transactionController.loadTransactions(),
     ]);
+    await _loadChiffreAffaires();
   }
 
   @override
@@ -54,6 +152,8 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+            const SizedBox(height: 12),
+            _buildChiffreAffairesCard(),
             const SizedBox(height: 12),
             _buildKpiRow(),
             const SizedBox(height: 12),
@@ -136,12 +236,141 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
     });
   }
 
+  Widget _buildChiffreAffairesCard() {
+    return Obx(() {
+      final caFormatted = NumberFormat('#,###').format(_chiffreAffaires.value);
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2E7D32).withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.monetization_on,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Mon Chiffre d\'Affaires',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      _loadingCA.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Text(
+                              '$caFormatted FCFA',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: _loadingCA.value ? null : _loadChiffreAffaires,
+                  icon: Icon(
+                    Icons.refresh,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButton<String>(
+                value: _periodeSelectionnee.value,
+                isExpanded: true,
+                underline: const SizedBox(),
+                dropdownColor: const Color(0xFF2E7D32),
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                icon: const Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+                items: [
+                  'Aujourd\'hui',
+                  'Hier',
+                  'Cette semaine',
+                  'Semaine dernière',
+                  'Ce mois',
+                  'Mois dernier',
+                  'Ce trimestre',
+                  'Trimestre dernier',
+                  'Cette année',
+                  'Année dernière',
+                ].map((periode) {
+                  return DropdownMenuItem<String>(
+                    value: periode,
+                    child: Text(periode),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    _periodeSelectionnee.value = value;
+                    _loadChiffreAffaires();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   Widget _buildKpiRow() {
     return Obx(() {
-      final colis = _colisController.colisList;
-      final devis = _devisController.devisList;
-      final courses = _courseController.coursesList;
-      final clients = _clientController.clientsList;
+      final user = _authController.currentUser.value;
+      final userId = user?.id ?? '';
+
+      // Filtrer par commercial connecté
+      final colis = _colisController.colisList.where((c) => c.commercialId == userId).toList();
+      final devis = _devisController.devisList.where((d) => d.userId == userId).toList();
+      final courses = _courseController.coursesList.where((c) => c.createdBy == userId).toList();
+      final clients = _clientController.clientsList; // Les clients restent visibles pour tous
 
       final today = DateTime.now();
       final colisAujourd = colis.where((c) {
@@ -152,6 +381,7 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
       final devisEnCours = devis.where((d) => d.statut == 'brouillon' || d.statut == 'envoye').length;
       final devisConverti = devis.where((d) => d.statut == 'valide' || d.statut == 'converti').length;
       final coursesActives = courses.where((c) => c.statut == 'enAttente' || c.statut == 'enCours').length;
+      final coursesTerminees = courses.where((c) => c.statut == 'terminee').length;
 
       final kpis = [
         _KpiData('Colis auj.', colisAujourd.toString(), Icons.inventory_2, const Color(0xFF2E7D32)),
@@ -161,7 +391,7 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
         _KpiData('Colis total', colis.length.toString(), Icons.all_inbox, const Color(0xFF6A1B9A)),
         _KpiData('Clients', clients.length.toString(), Icons.people, const Color(0xFF37474F)),
         _KpiData('Retours', colis.where((c) => c.isRetour).length.toString(), Icons.keyboard_return, const Color(0xFFC62828)),
-        _KpiData('Terminées', _courseController.coursesTerminees.toString(), Icons.task_alt, const Color(0xFF2E7D32)),
+        _KpiData('Terminées', coursesTerminees.toString(), Icons.task_alt, const Color(0xFF2E7D32)),
       ];
 
       return LayoutBuilder(builder: (context, constraints) {
@@ -274,9 +504,14 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
 
   Widget _buildRecentDevis() {
     return Obx(() {
-      final devis = _devisController.devisList.take(6).toList();
+      final user = _authController.currentUser.value;
+      final userId = user?.id ?? '';
+
+      // Filtrer les devis du commercial connecté
+      final devis = _devisController.devisList.where((d) => d.userId == userId).take(6).toList();
+
       return _sectionCard(
-        title: 'Devis récents',
+        title: 'Mes devis récents',
         icon: Icons.description,
         onMore: () => Get.to(() => const DevisListScreen()),
         child: devis.isEmpty
@@ -322,9 +557,14 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
 
   Widget _buildRecentColis() {
     return Obx(() {
-      final colis = _colisController.colisList.take(6).toList();
+      final user = _authController.currentUser.value;
+      final userId = user?.id ?? '';
+
+      // Filtrer les colis du commercial connecté
+      final colis = _colisController.colisList.where((c) => c.commercialId == userId).take(6).toList();
+
       return _sectionCard(
-        title: 'Colis récents',
+        title: 'Mes colis récents',
         icon: Icons.inventory_2,
         onMore: () {},
         child: colis.isEmpty
@@ -370,9 +610,14 @@ class _CommercialDashboardScreenState extends State<CommercialDashboardScreen> {
 
   Widget _buildCoursesSection() {
     return Obx(() {
-      final courses = _courseController.coursesList.where((c) => c.statut == 'enAttente' || c.statut == 'enCours').take(5).toList();
+      final user = _authController.currentUser.value;
+      final userId = user?.id ?? '';
+
+      // Filtrer les courses créées par le commercial connecté
+      final courses = _courseController.coursesList.where((c) => c.createdBy == userId && (c.statut == 'enAttente' || c.statut == 'enCours')).take(5).toList();
+
       return _sectionCard(
-        title: 'Courses en cours',
+        title: 'Mes courses en cours',
         icon: Icons.directions_bike,
         onMore: () => Get.to(() => const CoursesListScreen()),
         child: courses.isEmpty ? const _EmptyState(message: 'Aucune course active') : Column(children: courses.map((c) => _courseRow(c)).toList()),

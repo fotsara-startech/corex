@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:corex_shared/controllers/transaction_controller.dart';
+import 'package:corex_shared/controllers/auth_controller.dart';
 import 'package:corex_shared/models/transaction_model.dart';
+import 'package:corex_shared/services/user_service.dart';
 import 'package:intl/intl.dart';
 
 class HistoriqueTransactionsScreen extends StatefulWidget {
@@ -20,13 +22,34 @@ class _HistoriqueTransactionsScreenState extends State<HistoriqueTransactionsScr
   String? _typeFiltre; // 'recette', 'depense', ou null pour tous
   String? _categorieFiltre;
 
+  // Map userId -> nom complet
+  final Map<String, String> _usersMap = {};
+
   @override
   void initState() {
     super.initState();
-    // Recharger les transactions à chaque fois qu'on arrive sur cet écran
     WidgetsBinding.instance.addPostFrameCallback((_) {
       transactionController.loadTransactions();
+      _loadUsers();
     });
+  }
+
+  Future<void> _loadUsers() async {
+    try {
+      final authController = Get.find<AuthController>();
+      final agenceId = authController.currentUser.value?.agenceId;
+      if (agenceId == null) return;
+
+      final userService = Get.find<UserService>();
+      final users = await userService.getUsersByAgence(agenceId);
+      if (mounted) {
+        setState(() {
+          for (final u in users) {
+            _usersMap[u.id] = '${u.prenom} ${u.nom}';
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   List<TransactionModel> get _filteredTransactions {
@@ -372,6 +395,7 @@ class _HistoriqueTransactionsScreenState extends State<HistoriqueTransactionsScr
   Widget _buildTransactionTile(TransactionModel transaction) {
     final isRecette = transaction.type == 'recette';
     final categorie = isRecette ? transaction.categorieRecette : transaction.categorieDepense;
+    final auteur = _usersMap[transaction.userId] ?? transaction.userId;
 
     return ListTile(
       leading: CircleAvatar(
@@ -397,6 +421,20 @@ class _HistoriqueTransactionsScreenState extends State<HistoriqueTransactionsScr
                 fontSize: 12,
               ),
             ),
+          Row(
+            children: [
+              Icon(Icons.person_outline, size: 12, color: Colors.grey.shade500),
+              const SizedBox(width: 4),
+              Text(
+                auteur,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       trailing: Column(

@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html show AnchorElement, Blob, Url;
 import 'package:corex_shared/corex_shared.dart';
 
 class RapportActiviteScreen extends StatefulWidget {
@@ -260,15 +259,31 @@ class _RapportActiviteScreenState extends State<RapportActiviteScreen> {
     final filename = 'Rapport_COREX_${_dateFmt.format(_dateDebut).replaceAll('/', '-')}_${_dateFmt.format(_dateFin).replaceAll('/', '-')}.pdf';
 
     if (kIsWeb) {
-      await Printing.sharePdf(bytes: bytes, filename: filename);
+      // Sur Web, utiliser un téléchargement direct
+      try {
+        final blob = html.Blob([bytes], 'application/pdf');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)..setAttribute('download', filename);
+        anchor.click();
+        html.Url.revokeObjectUrl(url);
+
+        Get.snackbar(
+          'Succès',
+          'Rapport PDF téléchargé',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      } catch (e) {
+        Get.snackbar('Erreur', 'Impossible d\'exporter PDF: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      }
     } else {
       try {
         final dir = await getTemporaryDirectory();
         final file = File('${dir.path}/$filename');
         await file.writeAsBytes(bytes);
         await Share.shareXFiles([XFile(file.path)], subject: filename);
-      } catch (_) {
-        await Printing.sharePdf(bytes: bytes, filename: filename);
+      } catch (e) {
+        Get.snackbar('Erreur', 'Impossible d\'exporter PDF: $e', backgroundColor: Colors.red, colorText: Colors.white);
       }
     }
   }
@@ -320,10 +335,23 @@ class _RapportActiviteScreenState extends State<RapportActiviteScreen> {
     final filename = 'Rapport_COREX_${_dateFmt.format(_dateDebut).replaceAll('/', '-')}_${_dateFmt.format(_dateFin).replaceAll('/', '-')}.xlsx';
 
     if (kIsWeb) {
-      await Share.shareXFiles(
-        [XFile.fromData(Uint8List.fromList(bytes), name: filename, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')],
-        subject: filename,
-      );
+      // Sur Web, utiliser un téléchargement direct
+      try {
+        final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)..setAttribute('download', filename);
+        anchor.click();
+        html.Url.revokeObjectUrl(url);
+
+        Get.snackbar(
+          'Succès',
+          'Rapport Excel téléchargé',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      } catch (e) {
+        Get.snackbar('Erreur', 'Impossible d\'exporter Excel: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      }
     } else {
       try {
         final dir = await getTemporaryDirectory();

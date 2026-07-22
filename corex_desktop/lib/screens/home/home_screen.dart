@@ -175,22 +175,6 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // Tableau de bord PDG - Accès spécial
-                        // if (user?.role == 'pdg' || user?.role == 'admin')
-                        //   ListTile(
-                        //     leading: const Icon(Icons.analytics, color: Color(0xFF6C5CE7)),
-                        //     title: const Text(
-                        //       'Tableau de Bord PDG',
-                        //       style: TextStyle(
-                        //         fontWeight: FontWeight.bold,
-                        //         color: Color(0xFF6C5CE7),
-                        //       ),
-                        //     ),
-                        //     onTap: () => _navigateAfterDrawerClose(drawerContext, () {
-                        //       Get.toNamed('/pdg/dashboard');
-                        //     }),
-                        //   ),
-                        // Validation des demandes clients - Nouveau
                         if (user?.role == 'gestionnaire' || user?.role == 'admin')
                           ListTile(
                             leading: const Icon(Icons.approval, color: Color(0xFF2E7D32)),
@@ -247,6 +231,45 @@ class HomeScreen extends StatelessWidget {
                   return const SizedBox.shrink();
                 }),
 
+                // Section Commercial (accès spécifiques)
+                Obx(() {
+                  final user = authController.currentUser.value;
+                  if (user?.role != 'commercial') return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text(
+                          'COMMERCIAL',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                        ),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.approval, color: Color(0xFF2E7D32)),
+                        title: const Text('Demandes Clients'),
+                        onTap: () => _navigateAfterDrawerClose(drawerContext, () => Get.toNamed('/demandes')),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.map),
+                        title: const Text('Zones de livraison'),
+                        onTap: () => _navigateAfterDrawerClose(drawerContext, () => Get.to(() => const ZonesListScreen())),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.local_shipping),
+                        title: const Text('Agences de transport'),
+                        onTap: () => _navigateAfterDrawerClose(drawerContext, () => Get.to(() => const AgencesTransportListScreen())),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.contacts),
+                        title: const Text('Clients'),
+                        onTap: () => _navigateAfterDrawerClose(drawerContext, () => Get.to(() => const ClientsListScreen())),
+                      ),
+                      const Divider(),
+                    ],
+                  );
+                }),
+
                 // Section Opérations
                 const Padding(
                   padding: EdgeInsets.all(16.0),
@@ -268,7 +291,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 Obx(() {
                   final user = authController.currentUser.value;
-                  if (user?.role == 'agent' || user?.role == 'gestionnaire' || user?.role == 'admin') {
+                  if (user?.role == 'agent' || user?.role == 'gestionnaire' || user?.role == 'admin' || user?.role == 'commercial') {
                     return ListTile(
                       leading: const Icon(Icons.app_registration),
                       title: const Text('Enregistrer des colis'),
@@ -308,6 +331,14 @@ class HomeScreen extends StatelessWidget {
                           }),
                         ),
                       ],
+                    );
+                  } else if (user?.role == 'commercial') {
+                    return ListTile(
+                      leading: const Icon(Icons.local_shipping),
+                      title: const Text('Livraisons'),
+                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
+                        Get.to(() => const SuiviLivraisonsScreen());
+                      }),
                     );
                   } else if (user?.role == 'coursier') {
                     return ListTile(
@@ -352,7 +383,7 @@ class HomeScreen extends StatelessWidget {
                 // Section Stockage
                 Obx(() {
                   final user = authController.currentUser.value;
-                  if (user?.role == 'gestionnaire' || user?.role == 'admin') {
+                  if (user?.role == 'gestionnaire' || user?.role == 'admin' || user?.role == 'commercial') {
                     return ExpansionTile(
                       leading: const Icon(Icons.inventory_2),
                       title: const Text('Stockage'),
@@ -432,12 +463,25 @@ class HomeScreen extends StatelessWidget {
                       ],
                     );
                   } else if (user?.role == 'commercial') {
-                    return ListTile(
+                    return ExpansionTile(
                       leading: const Icon(Icons.directions_run),
                       title: const Text('Service de Courses'),
-                      onTap: () => _navigateAfterDrawerClose(drawerContext, () {
-                        Get.to(() => const CoursesListScreen());
-                      }),
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.add),
+                          title: const Text('Créer une course'),
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
+                            Get.to(() => const CoursesListScreen());
+                          }),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.list_alt),
+                          title: const Text('Suivi des courses'),
+                          onTap: () => _navigateAfterDrawerClose(drawerContext, () {
+                            Get.to(() => const SuiviCoursesScreen());
+                          }),
+                        ),
+                      ],
                     );
                   } else if (user?.role == 'coursier') {
                     return ListTile(

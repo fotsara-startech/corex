@@ -371,9 +371,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
                                   ],
                                 ),
                                 Text(
-                                  widget.colis.modeLivraison == 'agenceTransport'
-                                      ? '${widget.colis.montantTarif.toStringAsFixed(0)} FCFA'
-                                      : '${(widget.colis.montantTarif - widget.colis.fraisCollecte).toStringAsFixed(0)} FCFA',
+                                  '${(widget.colis.fraisLivraison + widget.colis.commissionVente).toStringAsFixed(0)} FCFA',
                                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green.shade900),
                                 ),
                               ],
@@ -575,7 +573,7 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
           id: const Uuid().v4(),
           agenceId: user.agenceId!,
           type: 'recette',
-          montant: widget.colis.modeLivraison == 'agenceTransport' ? widget.colis.montantTarif : widget.colis.montantTarif - widget.colis.fraisCollecte,
+          montant: widget.colis.fraisLivraison + widget.colis.commissionVente,
           date: DateTime.now(),
           categorieRecette: 'expedition',
           description: 'Enregistrement colis $numeroSuivi - ${widget.colis.destinataireNom}',
@@ -831,9 +829,9 @@ class _ColisDetailsScreenState extends State<ColisDetailsScreen> {
             'datePaiement': null,
           });
         } else if (diff < 0) {
-          // Montant diminué → ajustement en caisse (remboursement)
-          final ancienCorex = isAgenceTransport ? widget.colis.montantTarif : widget.colis.montantTarif - widget.colis.fraisCollecte;
-          final nouveauCorex = isAgenceTransport ? nouveauTotal : nouveauTotal - fraisCollecte;
+          // Montant diminué → ajustement en caisse (remboursement de la partie COREX)
+          final ancienCorex = widget.colis.fraisLivraison + widget.colis.commissionVente;
+          final nouveauCorex = fraisLivraison + commissionVente;
           final diffCorex = nouveauCorex - ancienCorex;
           if (diffCorex < 0) {
             if (!Get.isRegistered<TransactionService>()) {

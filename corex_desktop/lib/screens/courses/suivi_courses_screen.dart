@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:corex_shared/corex_shared.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' hide Border;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html show AnchorElement, Blob, Url;
 import '../../theme/corex_theme.dart';
 import 'course_details_screen.dart';
 
@@ -86,6 +92,132 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
     return _userController?.usersList.where((user) => user.role == 'coursier').toList() ?? [];
   }
 
+  Future<void> _exporterExcel() async {
+    final courses = _courseController?.filteredCourses ?? [];
+
+    if (courses.isEmpty) {
+      Get.snackbar(
+        'Aucune donnée',
+        'Aucune tâche à exporter',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    try {
+      final excel = Excel.createExcel();
+      final sheet = excel['Tâches'];
+
+      // En-têtes
+      final headers = [
+        'Tâche',
+        'Date Création',
+        'Client',
+        'Téléphone',
+        'Lieu',
+        'Instructions',
+        'Montant Estimé',
+        'Montant Réel',
+        'Commission',
+        'Commissionnaire',
+        'Statut',
+        'Date Début',
+        'Date Fin',
+        'Commentaire',
+      ];
+
+      for (var i = 0; i < headers.length; i++) {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.value = TextCellValue(headers[i]);
+        cell.cellStyle = CellStyle(
+          bold: true,
+          backgroundColorHex: ExcelColor.fromHexString('#2E7D32'),
+          fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        );
+      }
+
+      // Données
+      for (var rowIndex = 0; rowIndex < courses.length; rowIndex++) {
+        final course = courses[rowIndex];
+        final dataRowIndex = rowIndex + 1;
+
+        final data = [
+          course.tache,
+          DateFormat('dd/MM/yyyy HH:mm').format(course.dateCreation),
+          course.clientNom,
+          course.clientTelephone,
+          course.lieu,
+          course.instructions,
+          course.montantEstime.toStringAsFixed(0),
+          course.montantReel?.toStringAsFixed(0) ?? '-',
+          course.commissionMontant.toStringAsFixed(0),
+          course.coursierNom ?? 'Non assigné',
+          _getStatutLabel(course.statut),
+          course.dateDebut != null ? DateFormat('dd/MM/yyyy HH:mm').format(course.dateDebut!) : '-',
+          course.dateFin != null ? DateFormat('dd/MM/yyyy HH:mm').format(course.dateFin!) : '-',
+          course.commentaire ?? '-',
+        ];
+
+        for (var colIndex = 0; colIndex < data.length; colIndex++) {
+          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: dataRowIndex));
+          cell.value = TextCellValue(data[colIndex]);
+        }
+      }
+
+      // Supprimer la feuille par défaut
+      excel.delete('Sheet1');
+
+      final bytes = excel.encode();
+      if (bytes == null) return;
+
+      final filename = 'Taches_${DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now())}.xlsx';
+
+      if (kIsWeb) {
+        // Sur Web, utiliser un téléchargement direct
+        try {
+          final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          final url = html.Url.createObjectUrlFromBlob(blob);
+          final anchor = html.AnchorElement(href: url)..setAttribute('download', filename);
+          anchor.click();
+          html.Url.revokeObjectUrl(url);
+
+          Get.snackbar(
+            'Succès',
+            'Export Excel téléchargé (${courses.length} tâches)',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
+        } catch (e) {
+          Get.snackbar('Erreur', 'Impossible d\'exporter Excel: $e', backgroundColor: Colors.red, colorText: Colors.white);
+        }
+      } else {
+        try {
+          final dir = await getTemporaryDirectory();
+          final file = File('${dir.path}/$filename');
+          await file.writeAsBytes(bytes);
+          await Share.shareXFiles([XFile(file.path)], subject: filename);
+
+          Get.snackbar(
+            'Succès',
+            'Export Excel créé (${courses.length} tâches)',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
+        } catch (e) {
+          Get.snackbar('Erreur', 'Impossible d\'exporter Excel: $e', backgroundColor: Colors.red, colorText: Colors.white);
+        }
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Erreur lors de l\'export: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Vérifier que les contrôleurs sont initialisés
@@ -113,6 +245,11 @@ class _SuiviCoursesScreenState extends State<SuiviCoursesScreen> {
         title: const Text('Suivi des Tâches'),
         backgroundColor: CorexTheme.primaryGreen,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.table_chart),
+            onPressed: _exporterExcel,
+            tooltip: 'Exporter Excel',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => _courseController?.loadCourses(),

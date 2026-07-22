@@ -178,8 +178,9 @@ Future<void> _initializeServices() async {
     await _safeInitialize('ZoneService', () async => Get.put(ZoneService(), permanent: true));
     await _safeInitialize('CourseService', () async => Get.put(CourseService(), permanent: true));
     await _safeInitialize('AgenceTransportService', () async => Get.put(AgenceTransportService(), permanent: true));
-    await _safeInitialize('NotificationService', () async => Get.put(NotificationService(), permanent: true));
-    await _safeInitialize('AlertService', () async => Get.put(AlertService(), permanent: true));
+    // Services avec dépendances — lazyPut pour résoudre au premier usage
+    Get.lazyPut<NotificationService>(() => NotificationService(), fenix: true);
+    Get.lazyPut<AlertService>(() => AlertService(), fenix: true);
     await _safeInitialize('StockageService', () async => Get.put(StockageService(), permanent: true));
     await _safeInitialize('DevisService', () async => Get.put(DevisService(), permanent: true));
     await _safeInitialize('SyncService', () async => Get.put(SyncService(), permanent: true));
@@ -195,10 +196,13 @@ Future<void> _initializeServices() async {
     await _safeInitialize('ZoneController', () async => Get.put(ZoneController(), permanent: true));
     await _safeInitialize('AgenceController', () async => Get.put(AgenceController(), permanent: true));
     await _safeInitialize('CourseController', () async => Get.put(CourseController(), permanent: true));
-    await _safeInitialize('AgenceTransportController', () async => Get.put(AgenceTransportController(), permanent: true));
+    // AgenceTransportController dépend de AgenceTransportService — lazyPut
+    Get.lazyPut<AgenceTransportController>(() => AgenceTransportController(), fenix: true);
     await _safeInitialize('DashboardController', () async => Get.put(DashboardController(), permanent: true));
-    await _safeInitialize('NotificationController', () async => Get.put(NotificationController(), permanent: true));
+    // NotificationController dépend de NotificationService — lazyPut
+    Get.lazyPut<NotificationController>(() => NotificationController(), fenix: true);
     await _safeInitialize('PdgDashboardController', () async => Get.put(PdgDashboardController(), permanent: true));
+    // RetourController dépend de AuthController — initialiser après
     await _safeInitialize('RetourController', () async => Get.put(RetourController(), permanent: true));
     await _safeInitialize('StockageController', () async => Get.put(StockageController(), permanent: true));
     await _safeInitialize('DevisController', () async => Get.put(DevisController(), permanent: true));

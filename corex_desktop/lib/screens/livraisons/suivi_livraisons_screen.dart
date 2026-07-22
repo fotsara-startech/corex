@@ -9,6 +9,12 @@ import 'package:corex_shared/services/colis_service.dart';
 import 'package:corex_shared/services/user_service.dart';
 import 'package:corex_shared/services/livraison_service.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' hide Border;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html show AnchorElement, Blob, Url;
 
 class SuiviLivraisonsScreen extends StatefulWidget {
   const SuiviLivraisonsScreen({super.key});
@@ -102,6 +108,138 @@ class _SuiviLivraisonsScreenState extends State<SuiviLivraisonsScreen> {
     }
   }
 
+  Future<void> _exporterExcel() async {
+    final livraisons = _livraisonController.filteredLivraisons;
+
+    if (livraisons.isEmpty) {
+      Get.snackbar(
+        'Aucune donnée',
+        'Aucune livraison à exporter',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    try {
+      final excel = Excel.createExcel();
+      final sheet = excel['Livraisons'];
+
+      // En-têtes
+      final headers = [
+        'Numéro de Suivi',
+        'Date Création',
+        'Expéditeur',
+        'Destinataire',
+        'Agence Voyage',
+        'Destination',
+        'Montant Versé',
+        'Frais Expédition',
+        'Frais Livraison',
+        'Commission',
+        'Coursier',
+        'Zone',
+        'Statut Livraison',
+        'Date Départ',
+        'Date Retour',
+        'Motif Échec',
+      ];
+
+      for (var i = 0; i < headers.length; i++) {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.value = TextCellValue(headers[i]);
+        cell.cellStyle = CellStyle(
+          bold: true,
+          backgroundColorHex: ExcelColor.fromHexString('#4CAF50'),
+          fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        );
+      }
+
+      // Données
+      for (var rowIndex = 0; rowIndex < livraisons.length; rowIndex++) {
+        final livraison = livraisons[rowIndex];
+        final colis = _colisMap[livraison.colisId];
+        final coursier = _coursiersMap[livraison.coursierId];
+        final dataRowIndex = rowIndex + 1;
+
+        final data = [
+          colis?.numeroSuivi ?? 'Inconnu',
+          DateFormat('dd/MM/yyyy HH:mm').format(livraison.dateCreation),
+          colis?.expediteurNom ?? '-',
+          colis?.destinataireNom ?? '-',
+          colis?.agenceTransportNom ?? '-',
+          colis?.destinataireVille ?? '-',
+          colis?.montantDejaPaye.toStringAsFixed(0) ?? '0',
+          colis != null ? (colis.fraisCollecte + colis.fraisLivraison + colis.commissionVente).toStringAsFixed(0) : '0',
+          colis?.fraisLivraison.toStringAsFixed(0) ?? '0',
+          colis?.commissionVente.toStringAsFixed(0) ?? '0',
+          coursier?.nomComplet ?? 'Inconnu',
+          livraison.zone,
+          _getStatutLabel(livraison.statut),
+          livraison.heureDepart != null ? DateFormat('dd/MM/yyyy HH:mm').format(livraison.heureDepart!) : '-',
+          livraison.heureRetour != null ? DateFormat('dd/MM/yyyy HH:mm').format(livraison.heureRetour!) : '-',
+          livraison.motifEchec ?? '-',
+        ];
+
+        for (var colIndex = 0; colIndex < data.length; colIndex++) {
+          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: dataRowIndex));
+          cell.value = TextCellValue(data[colIndex]);
+        }
+      }
+
+      // Supprimer la feuille par défaut
+      excel.delete('Sheet1');
+
+      final bytes = excel.encode();
+      if (bytes == null) return;
+
+      final filename = 'Livraisons_${DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now())}.xlsx';
+
+      if (kIsWeb) {
+        // Sur Web, utiliser un téléchargement direct
+        try {
+          final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          final url = html.Url.createObjectUrlFromBlob(blob);
+          final anchor = html.AnchorElement(href: url)..setAttribute('download', filename);
+          anchor.click();
+          html.Url.revokeObjectUrl(url);
+
+          Get.snackbar(
+            'Succès',
+            'Export Excel téléchargé (${livraisons.length} livraisons)',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
+        } catch (e) {
+          Get.snackbar('Erreur', 'Impossible d\'exporter Excel: $e', backgroundColor: Colors.red, colorText: Colors.white);
+        }
+      } else {
+        try {
+          final dir = await getTemporaryDirectory();
+          final file = File('${dir.path}/$filename');
+          await file.writeAsBytes(bytes);
+          await Share.shareXFiles([XFile(file.path)], subject: filename);
+
+          Get.snackbar(
+            'Succès',
+            'Export Excel créé (${livraisons.length} livraisons)',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
+        } catch (e) {
+          Get.snackbar('Erreur', 'Impossible d\'exporter Excel: $e', backgroundColor: Colors.red, colorText: Colors.white);
+        }
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Erreur lors de l\'export: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,6 +248,11 @@ class _SuiviLivraisonsScreenState extends State<SuiviLivraisonsScreen> {
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.table_chart),
+            onPressed: _exporterExcel,
+            tooltip: 'Exporter Excel',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,

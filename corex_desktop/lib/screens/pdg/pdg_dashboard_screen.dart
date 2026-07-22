@@ -2094,14 +2094,22 @@
 // }
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:corex_shared/controllers/pdg_dashboard_controller.dart';
 import 'package:corex_shared/controllers/auth_controller.dart';
-import '../../widgets/pdg/kpi_card.dart';
 import '../../widgets/pdg/evolution_chart.dart';
 import '../../widgets/pdg/performance_chart.dart';
-import '../../widgets/pdg/alert_card.dart';
 import '../../widgets/pdg/top_performers_card.dart';
 import '../../widgets/shimmer_loading.dart';
+
+// ─────────────────────────────────────────────
+//  UTILS - Number formatting
+// ─────────────────────────────────────────────
+final _numberFormat = NumberFormat('#,###', 'fr_FR');
+
+String _formatAmount(double value) {
+  return _numberFormat.format(value.toInt());
+}
 
 // ─────────────────────────────────────────────
 //  DESIGN TOKENS — Light theme
@@ -2211,12 +2219,6 @@ class PdgDashboardScreen extends StatelessWidget {
                 if (!_hasRealData(ctrl)) ...[
                   const _DemoBanner(),
                   const SizedBox(height: 16),
-                ],
-
-                // Alertes
-                if (ctrl.alertesCritiques.isNotEmpty) ...[
-                  _AlertsSection(controller: ctrl),
-                  const SizedBox(height: 24),
                 ],
 
                 // KPIs
@@ -2560,55 +2562,6 @@ class _DemoBanner extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-//  ALERTS SECTION
-// ─────────────────────────────────────────────
-class _AlertsSection extends StatelessWidget {
-  final PdgDashboardController controller;
-  const _AlertsSection({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    final first = controller.alertesCritiques.isNotEmpty ? controller.alertesCritiques.first : null;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: BoxDecoration(
-        color: _C.dangerBg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _C.dangerBdr),
-      ),
-      child: Row(children: [
-        Container(width: 7, height: 7, decoration: BoxDecoration(color: _C.danger, shape: BoxShape.circle)),
-        const SizedBox(width: 10),
-        Text('Alerte critique', style: _T.body.copyWith(color: _C.danger, fontWeight: FontWeight.w700, fontSize: 13)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text('·', style: TextStyle(color: _C.danger.withOpacity(0.4), fontSize: 14)),
-        ),
-        Expanded(
-            child: Text(
-          first?['message'] ?? '',
-          style: _T.body.copyWith(color: _C.danger.withOpacity(0.85), fontSize: 12),
-          overflow: TextOverflow.ellipsis,
-        )),
-        const SizedBox(width: 10),
-        Text(
-          'Voir →',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: _C.danger,
-            fontFamily: 'DM Sans',
-            decoration: TextDecoration.underline,
-            decorationColor: _C.danger,
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
 //  KPI DATA MODEL
 // ─────────────────────────────────────────────
 class _KpiData {
@@ -2645,7 +2598,7 @@ class _KpiGrid extends StatelessWidget {
     final financials = [
       _KpiData(
         label: "CA Aujourd'hui",
-        value: '${ctrl.caAujourdhui.value.toStringAsFixed(0)} F',
+        value: '${_formatAmount(ctrl.caAujourdhui.value)} F',
         sub: 'Chiffre d\'affaires journalier',
         icon: Icons.schedule_rounded,
         iconColor: _C.accent,
@@ -2654,7 +2607,7 @@ class _KpiGrid extends StatelessWidget {
       ),
       _KpiData(
         label: 'CA Mensuel',
-        value: '${ctrl.caMois.value.toStringAsFixed(0)} F',
+        value: '${_formatAmount(ctrl.caMois.value)} F',
         sub: 'Cumul du mois en cours',
         icon: Icons.calendar_today_rounded,
         iconColor: _C.info,
@@ -2663,7 +2616,7 @@ class _KpiGrid extends StatelessWidget {
       ),
       _KpiData(
         label: 'Marge Nette',
-        value: '${ctrl.margeNette.value.toStringAsFixed(0)} F',
+        value: '${_formatAmount(ctrl.margeNette.value)} F',
         sub: 'Bénéfice après charges',
         icon: Icons.trending_up_rounded,
         iconColor: _C.teal,
@@ -2672,7 +2625,7 @@ class _KpiGrid extends StatelessWidget {
       ),
       _KpiData(
         label: 'Créances',
-        value: '${ctrl.creances.value.toStringAsFixed(0)} F',
+        value: '${_formatAmount(ctrl.creances.value)} F',
         sub: 'Montant à recouvrer',
         icon: Icons.account_balance_outlined,
         iconColor: _C.danger,
